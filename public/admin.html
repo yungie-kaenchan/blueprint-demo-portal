@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Word Quest · Back office (live)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #fffaf2; --card: #fff; --ink: #2b2236; --muted: #6d6478; --line: #efe6d8; --sun: #ffc845; --sun-deep: #e8a500; --mint: #3ccf9e; --mint-soft: #e2f8ef; --coral: #ff6b6b; --coral-soft: #ffe8e6; --sky: #5b8cff; --sky-soft: #e8efff; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font-family: "Fredoka", "Mali", system-ui, sans-serif; color: var(--ink); background: var(--bg); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  h1 { margin: 0; font-size: 26px; }
+  .live { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; color: #186b50; }
+  .live i { width: 10px; height: 10px; border-radius: 50%; background: var(--mint); animation: blink 1.4s infinite; }
+  .live.off { color: #a3302d; } .live.off i { background: var(--coral); animation: none; }
+  @keyframes blink { 50% { opacity: .25; } }
+  .card { background: var(--card); border: 2px solid var(--line); border-radius: 18px; padding: 16px; box-shadow: 0 6px 0 rgba(43,34,54,.06); }
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat b { display: block; font-size: 30px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 13px; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  h2 { font-size: 18px; margin: 0 0 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; color: var(--muted); }
+  td.n { font-variant-numeric: tabular-nums; text-align: right; }
+  .bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--coral); }
+  .playing td:first-child::before { content: "● "; color: var(--mint); }
+  .gate { max-width: 380px; margin: 12vh auto; }
+  input { font: inherit; font-size: 18px; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); width: 100%; }
+  button { font: inherit; font-weight: 700; font-size: 17px; border: 0; border-radius: 14px; padding: 11px 18px; background: var(--sun); box-shadow: 0 4px 0 var(--sun-deep); cursor: pointer; margin-top: 10px; width: 100%; }
+  .msg { color: #a3302d; margin-top: 8px; min-height: 1.2em; }
+  .muted { color: var(--muted); font-size: 13px; }
+  @media (max-width: 800px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="gate card" id="gate">
+  <h1>🧑‍🏫 Back office</h1>
+  <p class="muted">ใส่รหัสครู (ADMIN_PASSCODE ที่ตั้งใน Netlify) · Teacher passcode (ADMIN_PASSCODE in Netlify)</p>
+  <form id="gateForm"><input type="password" id="pass" autocomplete="current-password" aria-label="Passcode"><button type="submit">เข้า / Enter</button></form>
+  <div class="msg" id="gateMsg" role="alert"></div>
+</div>
+
+<div class="wrap" id="board" hidden>
+  <header>
+    <h1>🧑‍🏫 Word Quest · Back office</h1>
+    <span class="live" id="live"><i></i><span id="liveText">LIVE</span></span>
+  </header>
+  <div class="stats">
+    <div class="card stat"><b id="cPlaying">0</b><span>กำลังเล่น · playing now</span></div>
+    <div class="card stat"><b id="cFinished">0</b><span>เล่นจบ · finished plays</span></div>
+    <div class="card stat"><b id="cPlayers">0</b><span>นักเรียน · players</span></div>
+    <div class="card stat"><b id="cAvg">0</b><span>คะแนนเฉลี่ย · average</span></div>
+    <div class="card stat"><b id="cRate">0%</b><span>ตอบถูก · correct</span></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>● กำลังเล่น · Playing now</h2><table><thead><tr><th>Nickname</th><th>No.</th><th>Attempt</th><th>Started</th></tr></thead><tbody id="tPlaying"></tbody></table></div>
+    <div class="card"><h2>🏅 Top 10</h2><table><thead><tr><th>Nickname</th><th>No.</th><th class="n">Best</th></tr></thead><tbody id="tTop"></tbody></table></div>
+    <div class="card"><h2>🕒 เพิ่งเล่นจบ · Just finished</h2><table><thead><tr><th>Nickname</th><th>No.</th><th class="n">Points</th><th class="n">Correct</th></tr></thead><tbody id="tRecent"></tbody></table></div>
+    <div class="card"><h2>🧩 คำที่ผิดบ่อย · Hardest words</h2><table><thead><tr><th>Word</th><th class="n">Tries</th><th style="width:40%">Correct rate</th></tr></thead><tbody id="tHard"></tbody></table></div>
+  </div>
+  <p class="muted" style="margin-top:14px">ข้อมูลทั้งหมดอยู่ใน Google Sheet ของคุณ หน้านี้อ่านอย่างเดียว อัปเดตทุก 8 วินาที · All data lives in your Google Sheet; this page only reads it and refreshes every 8 seconds.</p>
+</div>
+<script>
+(function () {
+  'use strict';
+  var KEY = 'wq:admin', pass = '';
+  try { pass = sessionStorage.getItem(KEY) || ''; } catch (e) {}
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var time = function (iso) { var d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); };
+  var timer = null;
+
+  function rows(id, list, fn, empty) { $(id).innerHTML = list.length ? list.map(fn).join('') : '<tr><td colspan="4" class="muted">' + empty + '</td></tr>'; }
+  function render(v) {
+    $('cPlaying').textContent = v.counts.playing; $('cFinished').textContent = v.counts.finished; $('cPlayers').textContent = v.counts.players;
+    $('cAvg').textContent = v.counts.avgPoints; $('cRate').textContent = Math.round(v.counts.correctRate * 100) + '%';
+    rows('tPlaying', v.playing, function (p) { return '<tr class="playing"><td>' + esc(p.nickname) + '</td><td>' + esc(p.studentNo) + '</td><td>' + esc(p.attempt) + '</td><td>' + time(p.started) + '</td></tr>'; }, 'ยังไม่มีใครเล่น · nobody yet');
+    rows('tTop', v.top, function (p) { return '<tr><td>' + esc(p.nickname) + '</td><td>' + esc(p.studentNo) + '</td><td class="n">' + p.points + '</td></tr>'; }, '—');
+    rows('tRecent', v.recent, function (p) { return '<tr><td>' + esc(p.nickname) + '</td><td>' + esc(p.studentNo) + '</td><td class="n">' + p.points + '</td><td class="n">' + p.correct + '/' + p.total + '</td></tr>'; }, '—');
+    rows('tHard', v.hardest, function (w) { return '<tr><td>' + esc(w.word) + '</td><td class="n">' + w.tries + '</td><td><div class="bar" title="' + Math.round(w.rate * 100) + '%"><i style="width:' + Math.round((1 - w.rate) * 100) + '%"></i></div> ' + Math.round(w.rate * 100) + '%</td></tr>'; }, '—');
+  }
+  function poll() {
+    fetch('/api/admin', { headers: { 'x-admin-passcode': pass } }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) {
+        if (j.error === 'PASSCODE' || j.error === 'NO_ADMIN_PASSCODE') { clearInterval(timer); $('board').hidden = true; $('gate').hidden = false; $('gateMsg').textContent = j.error === 'PASSCODE' ? 'รหัสไม่ถูกต้อง · Wrong passcode' : 'ยังไม่ได้ตั้ง ADMIN_PASSCODE ใน Netlify · Set ADMIN_PASSCODE in Netlify first'; return; }
+        throw new Error(j.error);
+      }
+      try { sessionStorage.setItem(KEY, pass); } catch (e) {}
+      $('gate').hidden = true; $('board').hidden = false;
+      $('live').classList.remove('off'); $('liveText').textContent = 'LIVE · ' + time(j.value.at);
+      render(j.value);
+    }).catch(function () { $('live').classList.add('off'); $('liveText').textContent = 'reconnecting…'; });
+  }
+  function start() { poll(); clearInterval(timer); timer = setInterval(poll, 8000); }
+  $('gateForm').addEventListener('submit', function (e) { e.preventDefault(); pass = $('pass').value.trim(); $('gateMsg').textContent = ''; start(); });
+  if (pass) start();
+})();
+</script>
+</body>
+</html>
