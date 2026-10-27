@@ -1,0 +1,29 @@
+# WORD QUEST · Netlify house
+# Rooms (public/) + wiring (netlify/functions/) on Netlify; filing cabinet = your Google Sheet; storeroom = Netlify Blobs.
+
+[build]
+  command = "node tools/build-public.mjs"
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Pretty URL for the teacher's live dashboard
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "microphone=(self), camera=(self), geolocation=()"
+
+# The "Deploy to Netlify" button asks for these (the safe)
+[template.environment]
+  GOOGLE_SERVICE_ACCOUNT_JSON = "Paste the whole service-account JSON key (from Google Cloud Console)"
+  SHEET_ID = "Your Google Sheet's ID or URL (share the Sheet with the service account as Editor)"
+  ADMIN_PASSCODE = "A passcode for your live back office at /admin"
