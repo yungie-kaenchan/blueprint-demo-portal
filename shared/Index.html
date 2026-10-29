@@ -4,13 +4,12 @@
 <base target="_top">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Word Quest</title>
+<title>Writing Coach (Smart house)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!--
-  WORD QUEST · Rooms (frontend)
-  Students see this page. It talks to Code.gs through google.script.run.
-  Points saved in the Sheet are always calculated by Code.gs, never by this page.
+  WRITING COACH · Rooms (frontend)
+  Students see this page. It talks to the Netlify function endpoint through the game adapter.
 -->
 <style>
   :root {
@@ -60,11 +59,13 @@
   p { margin: 0 0 12px; }
   .muted { color: var(--muted); }
   label { display: block; font-weight: 600; margin: 14px 0 6px; }
-  input[type=text] {
-    width: 100%; font: inherit; font-size: 19px; padding: 12px 14px; border-radius: 14px;
+  input[type=text], textarea {
+    width: 100%; font: inherit; font-size: 17px; padding: 12px 14px; border-radius: 14px;
     border: 2px solid var(--line); background: #fffdf9; color: var(--ink);
   }
-  input[type=text]:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 4px var(--sky-soft); }
+  input[type=text]:focus, textarea:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 4px var(--sky-soft); }
+  textarea { resize: vertical; min-height: 130px; }
+  .char-count { font-size: 13px; color: var(--muted); text-align: right; margin-top: 4px; }
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     font: inherit; font-weight: 700; font-size: 18px; border: 0; cursor: pointer;
@@ -73,7 +74,7 @@
     min-height: 52px;
   }
   .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--sun-deep); }
-  .btn:focus-visible, .choice:focus-visible, .lang button:focus-visible, .level:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+  .btn:focus-visible, .lang button:focus-visible, .tab-btn:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
   .btn.full { width: 100%; margin-top: 18px; }
   .btn.ghost { background: var(--card); box-shadow: 0 4px 0 var(--line); border: 2px solid var(--line); }
   .btn.mint { background: var(--mint); color: #fff; box-shadow: 0 5px 0 #23a67b; }
@@ -83,81 +84,31 @@
   .msg.err { background: var(--coral-soft); color: #a3302d; }
   .msg.ok { background: var(--mint-soft); color: #186b50; }
   .hero-emoji { font-size: 54px; line-height: 1; }
-  .scorebar { display: flex; gap: 10px; margin-bottom: 14px; }
-  .pill { flex: 1; background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 8px 12px; text-align: center; }
-  .pill b { display: block; font-size: 22px; }
-  .pill span { font-size: 13px; color: var(--muted); }
-  .map { display: grid; gap: 14px; }
-  .level {
-    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; font: inherit;
-    background: var(--card); border: 2px solid var(--line); border-radius: var(--radius); padding: 16px; cursor: pointer;
-    box-shadow: var(--shadow);
-  }
-  .level .badge { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 28px; flex: none; }
-  .level:nth-child(1) .badge { background: var(--sun); }
-  .level:nth-child(2) .badge { background: var(--sky-soft); }
-  .level:nth-child(3) .badge { background: var(--mint-soft); }
-  .level:nth-child(4) .badge { background: #f1e8ff; }
-  .level .t { font-weight: 700; font-size: 19px; }
-  .level .s { color: var(--muted); font-size: 14px; }
-  .level[disabled] { opacity: .5; cursor: not-allowed; box-shadow: none; }
-  .level .stars { margin-left: auto; font-size: 18px; white-space: nowrap; }
-  .progress { display: flex; gap: 6px; margin-bottom: 14px; }
-  .progress i { flex: 1; height: 10px; border-radius: 99px; background: var(--line); }
-  .progress i.done { background: var(--sky); }
-  .progress i.now { background: var(--sun); }
-  .prompt { font-size: 24px; font-weight: 600; line-height: 1.3; margin: 6px 0 14px; }
-  .qimg { max-width: 100%; max-height: 200px; border-radius: 16px; display: block; margin: 0 auto 12px; }
-  .choices { display: grid; gap: 10px; }
-  .choice {
-    font: inherit; font-size: 20px; font-weight: 600; text-align: left; padding: 14px 16px; border-radius: 16px;
-    background: #fffdf9; border: 2px solid var(--line); cursor: pointer; color: var(--ink); min-height: 56px;
-  }
-  .choice[aria-pressed="true"] { border-color: var(--sky); background: var(--sky-soft); }
-  .choice.right { border-color: var(--mint); background: var(--mint-soft); }
-  .choice.wrong { border-color: var(--coral); background: var(--coral-soft); }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-  .row .btn { flex: 1; }
-  .listen { font-size: 40px; width: 96px; height: 96px; border-radius: 50%; margin: 6px auto 16px; display: grid; place-items: center; }
-  .hint { margin-top: 10px; color: var(--muted); font-size: 15px; display: none; }
-  .hint.show { display: block; }
-  .feedback { font-size: 20px; font-weight: 700; margin-top: 12px; min-height: 30px; }
-  .feedback.good { color: #1c8a64; }
-  .feedback.bad { color: #c2403c; }
-  .results { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
-  .results li { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: #fffdf9; border: 2px solid var(--line); }
-  .results li .ans { margin-left: auto; font-weight: 600; }
-  .big-stars { font-size: 42px; text-align: center; letter-spacing: 6px; margin: 4px 0 8px; }
-  .lb { list-style: none; padding: 0; margin: 8px 0 0; counter-reset: r; }
-  .lb li { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 12px; }
-  .lb li:nth-child(odd) { background: #fff6e0; }
-  .lb li::before { counter-increment: r; content: counter(r) "."; font-weight: 700; width: 28px; }
-  .lb li .n { flex: 1; }
-  .upload-box { margin-top: 18px; padding: 16px; border-radius: 18px; background: var(--sky-soft); }
-  .upload-box .row .btn { font-size: 16px; }
-  .upload-box audio { width: 100%; margin-top: 10px; }
-  .rec-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--coral); display: inline-block; animation: pulse 1s infinite; }
-  @keyframes pulse { 50% { opacity: .2; } }
-  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-  .pop { animation: pop .25s ease-out; }
-  .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
-  .confetti i { position: absolute; top: -12px; width: 10px; height: 14px; border-radius: 3px; animation: fall 1.4s ease-in forwards; }
-  @keyframes fall { to { transform: translateY(105vh) rotate(540deg); } }
+  
+  /* Tabs navigation bar */
+  .tab-bar { display: flex; gap: 8px; margin-bottom: 16px; background: var(--card); padding: 6px; border-radius: 18px; border: 2px solid var(--line); box-shadow: var(--shadow); }
+  .tab-btn { flex: 1; font: inherit; font-weight: 600; font-size: 15px; border: 0; background: transparent; padding: 10px 8px; border-radius: 12px; cursor: pointer; color: var(--muted); text-align: center; }
+  .tab-btn[aria-selected="true"] { background: var(--sky-soft); color: var(--sky); font-weight: 700; }
+
+  /* Writing Feedback Box */
+  .feedback-box { margin-top: 18px; padding: 16px; border-radius: 16px; background: var(--mint-soft); border: 2px solid #b2e8d4; }
+  .feedback-box h3 { margin: 0 0 8px; font-size: 18px; color: #186b50; }
+  .feedback-box ul { margin: 0; padding-left: 20px; font-size: 16px; }
+  .feedback-box li { margin-bottom: 6px; }
+
   .screen { display: none; }
   .screen.active { display: block; }
   .center { text-align: center; }
   .foot { margin-top: 26px; text-align: center; font-size: 12px; color: var(--muted); }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
-    .confetti { display: none; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
-    <div class="brand"><span class="logo" aria-hidden="true">🏠</span><span id="brandTitle">Word Quest</span></div>
+    <div class="brand"><span class="logo" aria-hidden="true">🏡</span><span id="brandTitle">Writing Coach</span></div>
     <div class="lang" role="group" aria-label="Language">
       <button type="button" data-lang="th" aria-pressed="true">ไทย</button>
       <button type="button" data-lang="en" aria-pressed="false">EN</button>
@@ -167,8 +118,8 @@
   <!-- 1. FRONT DOOR: login -->
   <section class="screen active" id="s-login" aria-labelledby="loginTitle">
     <div class="card">
-      <div class="hero-emoji" aria-hidden="true">🗺️</div>
-      <h1 id="loginTitle">Word Quest</h1>
+      <div class="hero-emoji" aria-hidden="true">✍️</div>
+      <h1 id="loginTitle">Writing Coach</h1>
       <p class="muted" data-t="welcome"></p>
       <form id="loginForm" novalidate>
         <label for="classCode" data-t="classCode"></label>
@@ -186,168 +137,115 @@
     </div>
   </section>
 
-  <!-- 2. MAP: levels -->
-  <section class="screen" id="s-map" aria-labelledby="mapTitle">
-    <div class="scorebar">
-      <div class="pill"><b id="totalPts">0</b><span data-t="points"></span></div>
-      <div class="pill"><b id="totalStars">0</b><span data-t="stars"></span></div>
+  <!-- 2. MAIN APP SHELL: 3 Tabs -->
+  <section class="screen" id="s-app" aria-labelledby="appTitle">
+    <div class="tab-bar" role="tablist" aria-label="App Sections">
+      <button type="button" class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-writing" id="btn-writing" data-t="tabWriting">✏️ Writing</button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-speaking" id="btn-speaking" data-t="tabSpeaking">🎙️ Speaking</button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-avatar" id="btn-avatar" data-t="tabAvatar">👤 Avatar</button>
     </div>
-    <h2 id="mapTitle"></h2>
-    <div class="map" id="map"></div>
-    <button class="btn full mint" id="finishBtn" hidden data-t="finish"></button>
-  </section>
 
-  <!-- 3. QUESTION -->
-  <section class="screen" id="s-q" aria-labelledby="qPrompt">
-    <div class="progress" id="progress" aria-hidden="true"></div>
-    <div class="card">
-      <p class="muted" id="qCount"></p>
-      <button class="btn ghost listen" id="listenBtn" type="button" hidden aria-label="Listen">🔊</button>
-      <img class="qimg" id="qImg" alt="" hidden>
-      <div class="prompt" id="qPrompt"></div>
-      <div class="choices" id="choices"></div>
-      <div id="typeWrap" hidden>
-        <label for="typeInput" class="sr" data-t="typeHere"></label>
-        <input type="text" id="typeInput" autocomplete="off" autocapitalize="off" spellcheck="false">
-      </div>
-      <div class="hint" id="hint"></div>
-      <div class="feedback" id="feedback" aria-live="polite"></div>
-      <div class="row">
-        <button class="btn ghost" type="button" id="hintBtn" data-t="hintBtn"></button>
-        <button class="btn" type="button" id="checkBtn" data-t="check"></button>
+    <!-- Tab 1: Writing Grader -->
+    <div class="card tab-content" id="tab-writing" role="tabpanel" aria-labelledby="btn-writing">
+      <h2>✏️ <span data-t="writingTitle">Writing Grader</span></h2>
+      <p class="muted" data-t="writingDesc">Write a short paragraph and get AI feedback on three rubric points.</p>
+      
+      <form id="writingForm">
+        <label for="writingText" data-t="writingLabel">Write your paragraph here:</label>
+        <textarea id="writingText" maxlength="1200" placeholder="Type or paste your English paragraph..." required></textarea>
+        <div class="char-count"><span id="charCount">0</span> / 1200</div>
+        <button class="btn full mint" type="submit" id="submitWritingBtn" data-t="submitWriting">Submit Paragraph 🚀</button>
+      </form>
+
+      <div class="msg" id="writingMsg" role="status"></div>
+      
+      <div class="feedback-box" id="writingFeedbackBox" hidden>
+        <h3 data-t="feedbackTitle">🤖 AI Feedback</h3>
+        <ul id="writingFeedbackList"></ul>
       </div>
     </div>
-  </section>
 
-  <!-- 4. LEVEL RESULT -->
-  <section class="screen" id="s-level" aria-labelledby="levelTitle">
-    <div class="card center">
-      <div class="big-stars" id="levelStars" aria-hidden="true"></div>
-      <h2 id="levelTitle"></h2>
-      <p id="levelLine"></p>
-      <ul class="results" id="levelList" style="text-align:left"></ul>
-      <button class="btn full" id="backToMap" data-t="continue"></button>
+    <!-- Tab 2: Speaking Practice Placeholder -->
+    <div class="card tab-content" id="tab-speaking" role="tabpanel" aria-labelledby="btn-speaking" hidden>
+      <h2>🎙️ <span data-t="speakingTitle">Speaking Practice</span></h2>
+      <p class="muted" data-t="speakingDesc">Record a 30-60 second answer and get AI feedback on fluency and pronunciation.</p>
     </div>
-  </section>
 
-  <!-- 5. FINISH -->
-  <section class="screen" id="s-end" aria-labelledby="endTitle">
-    <div class="card">
-      <div class="hero-emoji center" aria-hidden="true">🏆</div>
-      <h1 class="center" id="endTitle" data-t="wellDone"></h1>
-      <p class="center" id="endLine"></p>
-      <div id="lbWrap" hidden>
-        <h2 data-t="leaderboard"></h2>
-        <ol class="lb" id="lb"></ol>
-      </div>
-      <div class="upload-box" id="uploadBox" hidden>
-        <h2 data-t="uploadTitle"></h2>
-        <p id="uploadText"></p>
-        <div class="row">
-          <button class="btn ghost" type="button" id="photoBtn">📷 <span data-t="photo"></span></button>
-          <button class="btn ghost" type="button" id="recBtn">🎙️ <span data-t="record"></span></button>
-          <button class="btn ghost" type="button" id="fileBtn">📎 <span data-t="file"></span></button>
-        </div>
-        <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
-        <input type="file" id="fileInput" accept="image/*,audio/*,video/*,application/pdf" hidden>
-        <div id="recState" class="muted" style="margin-top:10px"></div>
-        <audio id="recPreview" controls hidden></audio>
-        <button class="btn full mint" type="button" id="sendBtn" hidden data-t="send"></button>
-        <div class="msg" id="uploadMsg" role="status"></div>
-      </div>
-      <button class="btn full ghost" id="againBtn" hidden data-t="again"></button>
+    <!-- Tab 3: Avatar Maker Placeholder -->
+    <div class="card tab-content" id="tab-avatar" role="tabpanel" aria-labelledby="btn-avatar" hidden>
+      <h2>👤 <span data-t="avatarTitle">Avatar Maker</span></h2>
+      <p class="muted" data-t="avatarDesc">Build a cartoon profile avatar from ready-made parts.</p>
     </div>
+
+    <button class="btn full ghost" type="button" id="logoutBtn" style="margin-top: 16px;" data-t="logout">Log out / ออกจากระบบ</button>
   </section>
 
-  <p class="foot">Word Quest · House Kit · Blueprint Before You Build</p>
+  <p class="foot">Writing Coach · Smart House · EFL University Demo</p>
 </div>
-<div class="confetti" id="confetti" aria-hidden="true"></div>
 
 <script>
-/* ---------- words on screen (Thai / English) ---------- */
+/* ---------- bilingual UI dictionaries ---------- */
 const T = {
   th: {
-    welcome: 'พิมพ์รหัสห้องที่ครูให้ แล้วออกผจญภัยเก็บคำศัพท์กัน!',
-    classCode: 'รหัสห้อง', nickname: 'ชื่อเล่น', studentNo: 'เลขที่ / รหัสนักเรียน', start: 'เริ่มเล่น 🚀',
+    welcome: 'พิมพ์รหัสห้องที่ครูให้ และชื่อเล่นเพื่อเข้าสู่บทเรียน',
+    classCode: 'รหัสห้อง', nickname: 'ชื่อเล่น', studentNo: 'เลขที่ / รหัสนักเรียน', start: 'เข้าสู่บทเรียน 🚀',
     privacy: 'ใช้ชื่อเล่นเท่านั้น ไม่ต้องใส่ชื่อจริงหรือเบอร์โทร',
-    points: 'คะแนน', stars: 'ดาว', map: 'เลือกด่าน', finish: 'จบเกม ส่งคะแนน 🏁',
-    level: 'ด่าน', questionsN: n => n + ' ข้อ', locked: 'ผ่านด่านก่อนหน้าก่อนนะ',
-    qOf: (i, n) => 'ข้อ ' + i + ' จาก ' + n, typeHere: 'พิมพ์คำตอบ', hintBtn: '💡 คำใบ้', check: 'ตรวจคำตอบ', next: 'ข้อต่อไป ➜', seeResult: 'ดูผล ➜',
-    right: ['เยี่ยมมาก! ✨', 'ถูกต้อง! 🎉', 'เก่งมาก! 🌟'], wrong: 'ยังไม่ใช่ ไม่เป็นไรนะ 💪', saved: 'บันทึกคำตอบแล้ว ✓ (เฉลยตอนจบด่าน)', pick: 'เลือกหรือพิมพ์คำตอบก่อนนะ',
-    levelDone: n => 'ผ่านด่าน ' + n + ' แล้ว!', levelLine: (c, t, p) => 'ถูก ' + c + ' จาก ' + t + ' ข้อ · ได้ ' + p + ' คะแนน',
-    continue: 'กลับไปที่แผนที่', wellDone: 'สุดยอด!', endLine: (p, c, t) => 'ได้ทั้งหมด ' + p + ' คะแนน (ถูก ' + c + '/' + t + ')',
-    leaderboard: '🏅 10 อันดับของห้อง', uploadTitle: '📤 ภารกิจพิเศษ', photo: 'ถ่ายรูป', record: 'อัดเสียง', file: 'เลือกไฟล์',
-    stop: 'หยุดอัด', send: 'ส่งงาน', sending: 'กำลังส่ง…', sent: 'ส่งงานแล้ว ขอบคุณ! ✅', again: 'เล่นอีกครั้ง',
-    left: n => 'เล่นได้อีก ' + n + ' ครั้ง', recording: 'กำลังอัดเสียง… (สูงสุด 60 วินาที)', ready: name => 'พร้อมส่ง: ' + name,
-    noMic: 'อัดเสียงในหน้านี้ไม่ได้ ลองกด "เลือกไฟล์" แล้วอัดด้วยแอปในเครื่องแทน', saving: 'กำลังบันทึก…',
+    tabWriting: '✏️ เขียนพารากราฟ', tabSpeaking: '🎙️ ฝึกพูด', tabAvatar: '👤 สร้างอวตาร',
+    writingTitle: 'ตรวจงานเขียน', writingDesc: 'เขียนพารากราฟสั้นๆ และรับคำแนะนำจาก AI ตามเกณฑ์ 3 ข้อ',
+    writingLabel: 'เขียนพารากราฟภาษาอังกฤษของคุณที่นี่:', submitWritingBtn: 'ส่งตรวจงานเขียน 🚀',
+    submittingWriting: 'กำลังส่งให้ AI ตรวจสอบ…', writingSaved: 'บันทึกงานเขียนเรียบร้อยแล้ว ✓',
+    feedbackTitle: '🤖 คำแนะนำจาก AI', pendingFeedback: 'ครูจะทำการปลดล็อกคำแนะนำให้เร็วๆ นี้',
+    speakingTitle: 'ฝึกทักษะการพูด', speakingDesc: 'บันทึกเสียง 30-60 วินาที เพื่อรับคำติชมด้านความคล่องแคล่วและการออกเสียง',
+    avatarTitle: 'สร้างรูปโปรไฟล์', avatarDesc: 'แต่งตัวการ์ตูนโปรไฟล์จากชิ้นส่วนสำเร็จรูป',
+    logout: 'ออกจากระบบ',
     err: {
       WRONG_CODE: 'รหัสห้องไม่ถูกต้อง ลองถามครูอีกครั้งนะ', NO_NICKNAME: 'ใส่ชื่อเล่นก่อนนะ', NO_STUDENT_NO: 'ใส่เลขที่ก่อนนะ',
-      NOT_OPEN: 'เกมยังไม่เปิด รอครูก่อนนะ', CLOSED: 'เกมปิดแล้ว', NO_ATTEMPTS_LEFT: 'เล่นครบจำนวนครั้งแล้ว',
-      NO_QUESTIONS: 'ครูยังไม่ได้ใส่คำถาม', SESSION_EXPIRED: 'หมดเวลา กรุณาเข้าเกมใหม่', TOO_BIG: 'ไฟล์ใหญ่เกินไป',
-      BAD_TYPE: 'ส่งได้เฉพาะรูป เสียง วิดีโอ หรือ PDF', TOO_MANY: 'ส่งงานครบจำนวนแล้ว', NETWORK: 'อินเทอร์เน็ตมีปัญหา ลองใหม่อีกครั้ง',
-      BUSY: 'ทั้งห้องกำลังส่งพร้อมกัน รอสักครู่แล้วกดอีกครั้งนะ', FINISH_FIRST: 'เล่นให้จบก่อนแล้วค่อยส่งงานนะ', NOT_SET_UP: 'ครูยังตั้งค่าไม่เสร็จ (เมนู 1 · Set up)', ALREADY_FINISHED: 'ส่งคะแนนไปแล้ว',
+      NOT_OPEN: 'เกมยังไม่เปิด รอครูก่อนนะ', CLOSED: 'บทเรียนปิดแล้ว', NETWORK: 'อินเทอร์เน็ตมีปัญหา ลองใหม่อีกครั้ง',
+      NO_TEXT: 'กรุณาเขียนข้อความก่อนส่ง', TOO_BIG: 'ข้อความยาวเกินไป',
     },
   },
   en: {
-    welcome: 'Type the class code from your teacher and start your word adventure!',
+    welcome: 'Type your class code and nickname to get started.',
     classCode: 'Class code', nickname: 'Nickname', studentNo: 'Student number', start: 'Start 🚀',
     privacy: 'Use your nickname only. No full names or phone numbers.',
-    points: 'points', stars: 'stars', map: 'Choose a level', finish: 'Finish and send my score 🏁',
-    level: 'Level', questionsN: n => n + ' questions', locked: 'Finish the previous level first',
-    qOf: (i, n) => 'Question ' + i + ' of ' + n, typeHere: 'Type your answer', hintBtn: '💡 Hint', check: 'Check', next: 'Next ➜', seeResult: 'See result ➜',
-    right: ['Great! ✨', 'Correct! 🎉', 'Well done! 🌟'], wrong: 'Not quite. Keep going! 💪', saved: 'Answer saved ✓ (answers at the end of the level)', pick: 'Choose or type an answer first',
-    levelDone: n => 'Level ' + n + ' complete!', levelLine: (c, t, p) => c + ' of ' + t + ' correct · ' + p + ' points',
-    continue: 'Back to the map', wellDone: 'Awesome!', endLine: (p, c, t) => 'You scored ' + p + ' points (' + c + '/' + t + ' correct)',
-    leaderboard: '🏅 Class top 10', uploadTitle: '📤 Bonus mission', photo: 'Photo', record: 'Record', file: 'Choose file',
-    stop: 'Stop', send: 'Send', sending: 'Sending…', sent: 'Sent. Thank you! ✅', again: 'Play again',
-    left: n => n + ' plays left', recording: 'Recording… (max 60 seconds)', ready: name => 'Ready to send: ' + name,
-    noMic: 'Recording isn\'t available here. Tap "Choose file" and record with your phone\'s app instead.', saving: 'Saving…',
+    tabWriting: '✏️ Writing', tabSpeaking: '🎙️ Speaking', tabAvatar: '👤 Avatar',
+    writingTitle: 'Writing Grader', writingDesc: 'Write a short paragraph and get AI feedback on three rubric points.',
+    writingLabel: 'Write your paragraph here:', submitWritingBtn: 'Submit Paragraph 🚀',
+    submittingWriting: 'Checking with AI…', writingSaved: 'Paragraph saved successfully ✓',
+    feedbackTitle: '🤖 AI Feedback', pendingFeedback: 'Your teacher will release your feedback soon.',
+    speakingTitle: 'Speaking Practice', speakingDesc: 'Record a 30-60 second answer and get AI feedback on fluency and pronunciation.',
+    avatarTitle: 'Avatar Maker', avatarDesc: 'Build a cartoon profile avatar from ready-made parts.',
+    logout: 'Log out',
     err: {
       WRONG_CODE: 'That class code is not right. Ask your teacher.', NO_NICKNAME: 'Please type your nickname.', NO_STUDENT_NO: 'Please type your student number.',
-      NOT_OPEN: 'The game is not open yet.', CLOSED: 'The game is closed.', NO_ATTEMPTS_LEFT: 'You have used all your plays.',
-      NO_QUESTIONS: 'Your teacher hasn\'t added questions yet.', SESSION_EXPIRED: 'Time out. Please start again.', TOO_BIG: 'The file is too big.',
-      BAD_TYPE: 'Only photos, audio, video or PDF.', TOO_MANY: 'You have sent the maximum number of files.', NETWORK: 'Connection problem. Please try again.',
-      BUSY: 'The whole class is sending at once. Wait a moment and tap again.', FINISH_FIRST: 'Finish the game first, then send your file.', NOT_SET_UP: 'Your teacher has not finished setup (menu 1 · Set up).', ALREADY_FINISHED: 'Your score was already sent.',
+      NOT_OPEN: 'The class is not open yet.', CLOSED: 'The class is closed.', NETWORK: 'Connection problem. Please try again.',
+      NO_TEXT: 'Please write some text before submitting.', TOO_BIG: 'The text is too long.',
     },
   },
 };
-const LEVEL_ICONS = ['🍎', '🧺', '🎧', '🚀', '🌈', '🏰'];
 
-/* ---------- state ---------- */
 let lang = 'th', cfg = null, game = null;
-const st = { levelIdx: 0, qIdx: 0, answers: [], streak: 0, done: {}, points: 0, stars: 0, picked: null, checked: false };
-let upload = null, recorder = null, recTimer = null;
-
 const $ = id => document.getElementById(id);
 const t = key => T[lang][key];
 
-/* ---------- talking to Code.gs ---------- */
+/* ---------- Network adapter for Netlify endpoint /api/game ---------- */
 function call(fn, ...args) {
-  return new Promise((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler(resolve)
-      .withFailureHandler(e => reject(new Error(String((e && e.message) || e).replace(/^Error:\s*/, ''))))
-      [fn](...args);
+  return fetch('/api/game', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ fn, args })
+  }).then(async res => {
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'ERROR');
+    return data.value;
   });
 }
-/** Retries safe calls once or twice when the class jams the server. submitLevel/finishGame are safe to repeat. */
-async function callRetry(fn, ...args) {
-  for (let i = 0; ; i++) {
-    try { return await call(fn, ...args); }
-    catch (e) {
-      const code = String(e && e.message || '');
-      const retryable = code === 'BUSY' || !T.en.err[code];
-      if (!retryable || i >= 2) throw e;
-      await new Promise(r => setTimeout(r, 1200 + Math.random() * 2500 * (i + 1)));
-    }
-  }
-}
+
 function errText(e) {
   const code = String(e && e.message || '').trim();
   return T[lang].err[code] || T[lang].err.NETWORK;
 }
 
-/* ---------- language ---------- */
 function setLang(l) {
   lang = l;
   document.documentElement.lang = l;
@@ -356,44 +254,19 @@ function setLang(l) {
     const v = T[l][el.dataset.t];
     if (typeof v === 'string') el.textContent = v;
   });
-  $('mapTitle').textContent = t('map');
-  if (game) { renderMap(); if ($('s-q').classList.contains('active')) renderQuestion(true); }
 }
 document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
 
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
   window.scrollTo(0, 0);
-  const h = $(id).querySelector('h1, h2, .prompt');
-  if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
 }
 function msg(el, text, kind) {
   el.textContent = text || '';
   el.className = 'msg ' + (kind || 'err') + (text ? ' show' : '');
 }
 
-/* ---------- answer checking in the browser (instant feedback only) ---------- */
-function normalize(s) {  // keep identical to normalize_() in Code.gs
-  return String(s || '').toLowerCase()
-    .replace(/[‘’ʼ]/g, "'")
-    .replace(/[.!?,;:"]+$/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-async function sha256(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-/** true / false, or null when we can't tell (test mode, or no Web Crypto in this browser). */
-async function looksRight(q, answer) {
-  if (!q.check || !q.check.length) return null;
-  try {
-    const h = await sha256(game.salt + '|' + q.id + '|' + normalize(answer));
-    return q.check.indexOf(h) > -1;
-  } catch (e) { return null; }
-}
-
-/* ---------- 1. login ---------- */
+/* ---------- Login handler ---------- */
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   msg($('loginMsg'), '');
@@ -402,9 +275,7 @@ $('loginForm').addEventListener('submit', async e => {
   $('startBtn').disabled = true;
   try {
     game = await call('startGame', login);
-    st.levelIdx = 0; st.done = {}; st.points = 0; st.stars = 0;
-    renderMap();
-    show('s-map');
+    show('s-app');
   } catch (err) {
     msg($('loginMsg'), errText(err));
   } finally {
@@ -412,278 +283,71 @@ $('loginForm').addEventListener('submit', async e => {
   }
 });
 
-/* ---------- 2. map ---------- */
-function renderMap() {
-  const map = $('map');
-  map.innerHTML = '';
-  game.levels.forEach((lv, i) => {
-    const done = st.done[lv.level];
-    const unlocked = i === 0 || st.done[game.levels[i - 1].level];
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'level';
-    b.disabled = !unlocked || !!done;
-    b.innerHTML = '<span class="badge" aria-hidden="true">' + LEVEL_ICONS[i % LEVEL_ICONS.length] + '</span>' +
-      '<span><span class="t"></span><br><span class="s"></span></span><span class="stars"></span>';
-    b.querySelector('.t').textContent = t('level') + ' ' + lv.level;
-    b.querySelector('.s').textContent = unlocked ? T[lang].questionsN(lv.questions.length) : t('locked');
-    b.querySelector('.stars').textContent = done ? '⭐'.repeat(done.stars) + '☆'.repeat(3 - done.stars) : (unlocked ? '▶' : '🔒');
-    b.setAttribute('aria-label', b.textContent);
-    b.addEventListener('click', () => startLevel(i));
-    map.appendChild(b);
-  });
-  $('totalPts').textContent = st.points;
-  $('totalStars').textContent = st.stars;
-  const anyDone = Object.keys(st.done).length > 0;
-  $('finishBtn').hidden = !anyDone;
-}
-$('finishBtn').addEventListener('click', finish);
-
-/* ---------- 3. questions ---------- */
-function startLevel(i) {
-  st.levelIdx = i; st.qIdx = 0; st.answers = []; st.streak = 0;
-  renderQuestion();
-  show('s-q');
-}
-function currentQ() { return game.levels[st.levelIdx].questions[st.qIdx]; }
-
-function renderQuestion(keepState) {
-  const lv = game.levels[st.levelIdx], q = currentQ(), n = lv.questions.length;
-  if (!keepState) { st.picked = null; st.checked = false; }
-  $('progress').innerHTML = lv.questions.map((_, i) => '<i class="' + (i < st.qIdx ? 'done' : i === st.qIdx ? 'now' : '') + '"></i>').join('');
-  $('qCount').textContent = T[lang].qOf(st.qIdx + 1, n);
-  $('qPrompt').textContent = q.prompt || '';
-  $('qImg').hidden = !q.image;
-  if (q.image) $('qImg').src = q.image;
-  $('listenBtn').hidden = !q.say;
-  $('hint').textContent = q.hint ? '💡 ' + q.hint : '';
-  $('hintBtn').hidden = !q.hint;
-  if (!keepState) { $('hint').classList.remove('show'); $('feedback').textContent = ''; $('feedback').className = 'feedback'; }
-  $('checkBtn').textContent = st.checked ? (st.qIdx + 1 < n ? t('next') : t('seeResult')) : t('check');
-
-  const box = $('choices');
-  if (!keepState) {
-    box.innerHTML = '';
-    $('typeInput').value = '';
-  }
-  if (q.choices) {
-    $('typeWrap').hidden = true;
-    if (!keepState) q.choices.forEach(c => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'choice'; b.textContent = c; b.setAttribute('aria-pressed', 'false');
-      b.addEventListener('click', () => {
-        if (st.checked) return;
-        st.picked = c;
-        box.querySelectorAll('.choice').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-      });
-      box.appendChild(b);
-    });
-  } else {
-    $('typeWrap').hidden = false;
-    if (!keepState) setTimeout(() => $('typeInput').focus(), 50);
-  }
-  if (q.say && !keepState) setTimeout(() => speak(q.say), 350);
-}
-
-$('typeInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('checkBtn').click(); } });
-$('hintBtn').addEventListener('click', () => $('hint').classList.add('show'));
-$('listenBtn').addEventListener('click', () => speak(currentQ().say));
-
-$('checkBtn').addEventListener('click', async () => {
-  const q = currentQ(), lv = game.levels[st.levelIdx];
-  if (st.checked) {                                  // go to next question
-    st.qIdx++;
-    if (st.qIdx < lv.questions.length) return renderQuestion();
-    return submitLevel();
-  }
-  const answer = q.choices ? st.picked : $('typeInput').value;
-  if (!answer || !String(answer).trim()) {
-    $('feedback').textContent = t('pick'); $('feedback').className = 'feedback bad'; return;
-  }
-  if (st.busy) return;                              // ignore a double tap while checking
-  st.busy = true;
-  const ok = await looksRight(q, answer);
-  st.busy = false;
-  st.checked = true;
-  st.answers.push({ id: q.id, answer: String(answer) });
-  const fb = $('feedback');
-  if (ok === null) {                                 // test mode: no right/wrong until the level ends
-    fb.textContent = t('saved'); fb.className = 'feedback pop';
-  } else {
-    st.streak = ok ? st.streak + 1 : 0;
-    fb.textContent = ok ? T[lang].right[Math.floor(Math.random() * 3)] + (st.streak >= 3 && st.streak % 3 === 0 ? ' 🔥×3' : '') : t('wrong');
-    fb.className = 'feedback pop ' + (ok ? 'good' : 'bad');
-    if (q.choices) $('choices').querySelectorAll('.choice').forEach(x => {
-      if (x.getAttribute('aria-pressed') === 'true') x.classList.add(ok ? 'right' : 'wrong');
-    });
-    if (ok) confetti(14);
-  }
-  $('checkBtn').textContent = st.qIdx + 1 < lv.questions.length ? t('next') : t('seeResult');
-  $('typeInput').blur();
+/* ---------- Writing text area counter & submit ---------- */
+$('writingText').addEventListener('input', e => {
+  $('charCount').textContent = e.target.value.length;
 });
 
-/* ---------- 4. level result (scored by Code.gs) ---------- */
-async function submitLevel() {
-  const lv = game.levels[st.levelIdx];
-  $('checkBtn').disabled = true;
-  $('checkBtn').textContent = t('saving');
-  try {
-    const r = await callRetry('submitLevel', game.sessionId, lv.level, st.answers);
-    const ratio = r.total ? r.correct / r.total : 0;
-    const stars = ratio >= 0.9 ? 3 : ratio >= 0.6 ? 2 : ratio > 0 ? 1 : 0;
-    st.done[lv.level] = { stars, points: r.points };
-    st.points = Object.values(st.done).reduce((a, d) => a + d.points, 0);
-    st.stars = Object.values(st.done).reduce((a, d) => a + d.stars, 0);
-    $('levelStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
-    $('levelTitle').textContent = T[lang].levelDone(lv.level);
-    $('levelLine').textContent = T[lang].levelLine(r.correct, r.total, r.points);
-    const qs = {}; lv.questions.forEach(q => { qs[q.id] = q; });
-    const mine = {}; st.answers.forEach(a => { mine[a.id] = a.answer; });
-    $('levelList').innerHTML = '';
-    r.details.forEach(d => {
-      const li = document.createElement('li');
-      li.innerHTML = '<span aria-hidden="true"></span><span class="q"></span><span class="ans"></span>';
-      li.children[0].textContent = d.correct ? '✅' : '❌';
-      li.children[1].textContent = d.correct ? d.answer : (mine[d.id] || '—') + ' →';
-      li.children[2].textContent = d.correct ? '' : d.answer;
-      li.setAttribute('aria-label', (d.correct ? 'correct: ' : 'wrong, answer: ') + d.answer);
-      $('levelList').appendChild(li);
-    });
-    if (stars === 3) confetti(40);
-    renderMap();
-    show('s-level');
-  } catch (err) {
-    $('feedback').textContent = errText(err); $('feedback').className = 'feedback bad';
-    $('checkBtn').textContent = t('seeResult');
-    if (String(err.message) === 'SESSION_EXPIRED') setTimeout(() => location.reload(), 2500);
-  } finally {
-    $('checkBtn').disabled = false;
-  }
-}
-$('backToMap').addEventListener('click', () => {
-  const allDone = game.levels.every(l => st.done[l.level]);
-  if (allDone) finish(); else show('s-map');
-});
+$('writingForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  msg($('writingMsg'), '');
+  $('writingFeedbackBox').hidden = true;
+  const text = $('writingText').value;
+  if (!text.trim()) return msg($('writingMsg'), T[lang].err.NO_TEXT);
 
-/* ---------- 5. finish ---------- */
-async function finish() {
-  $('finishBtn').disabled = true;
+  const btn = $('submitWritingBtn');
+  btn.disabled = true;
+  btn.textContent = t('submittingWriting');
+
   try {
-    const r = await callRetry('finishGame', game.sessionId);
-    $('endLine').textContent = T[lang].endLine(r.points, r.correct, r.total);
-    $('lbWrap').hidden = !r.leaderboard;
-    if (r.leaderboard) {
-      $('lb').innerHTML = '';
-      r.leaderboard.forEach(p => {
+    const res = await call('submitWriting', game.sessionId, text);
+    msg($('writingMsg'), t('writingSaved'), 'ok');
+    
+    const list = $('writingFeedbackList');
+    list.innerHTML = '';
+    if (res.released) {
+      const points = Array.isArray(res.feedback) ? res.feedback : String(res.feedback || '').split('\n').filter(Boolean);
+      points.forEach(pt => {
         const li = document.createElement('li');
-        li.innerHTML = '<span class="n"></span><b></b>';
-        li.children[0].textContent = p.nickname;
-        li.children[1].textContent = p.points;
-        $('lb').appendChild(li);
+        li.textContent = pt.replace(/^[-*•\d+.)\s]+/, '');
+        list.appendChild(li);
       });
+      $('writingFeedbackBox').hidden = false;
+    } else {
+      const li = document.createElement('li');
+      li.textContent = t('pendingFeedback');
+      list.appendChild(li);
+      $('writingFeedbackBox').hidden = false;
     }
-    $('uploadBox').hidden = !game.rules.upload;
-    $('uploadText').textContent = game.rules.uploadText;
-    $('againBtn').hidden = !(game.attemptsLeft === null || game.attemptsLeft > 0);
-    if (game.attemptsLeft) $('againBtn').textContent = t('again') + ' (' + T[lang].left(game.attemptsLeft) + ')';
-    confetti(60);
-    show('s-end');
   } catch (err) {
-    alert(errText(err));
+    msg($('writingMsg'), errText(err));
   } finally {
-    $('finishBtn').disabled = false;
-  }
-}
-$('againBtn').addEventListener('click', () => location.reload());
-
-/* ---------- upload task (storeroom) ---------- */
-$('photoBtn').addEventListener('click', () => $('photoInput').click());
-$('fileBtn').addEventListener('click', () => $('fileInput').click());
-['photoInput', 'fileInput'].forEach(id => $(id).addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (f) pickFile(f, f.name, f.type);
-}));
-function pickFile(blob, name, type) {
-  msg($('uploadMsg'), '');
-  if (blob.size > game.rules.maxMB * 1024 * 1024) { msg($('uploadMsg'), T[lang].err.TOO_BIG); return; }
-  upload = { blob, name, type };
-  $('recState').textContent = T[lang].ready(name);
-  $('sendBtn').hidden = false;
-}
-$('recBtn').addEventListener('click', async () => {
-  if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const chunks = [];
-    recorder = new MediaRecorder(stream);
-    recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = () => {
-      clearTimeout(recTimer);
-      stream.getTracks().forEach(tr => tr.stop());
-      const type = recorder.mimeType || 'audio/webm';
-      const blob = new Blob(chunks, { type });
-      $('recPreview').src = URL.createObjectURL(blob);
-      $('recPreview').hidden = false;
-      $('recBtn').innerHTML = '🎙️ <span>' + t('record') + '</span>';
-      pickFile(blob, 'voice.' + (type.indexOf('mp4') > -1 ? 'm4a' : type.indexOf('ogg') > -1 ? 'ogg' : 'webm'), type);
-    };
-    recorder.start();
-    $('recState').innerHTML = '<span class="rec-dot"></span> ' + t('recording');
-    $('recBtn').innerHTML = '⏹️ <span>' + t('stop') + '</span>';
-    recTimer = setTimeout(() => recorder.state === 'recording' && recorder.stop(), 60000);
-  } catch (err) {
-    $('recState').textContent = t('noMic');
-  }
-});
-$('sendBtn').addEventListener('click', async () => {
-  if (!upload) return;
-  $('sendBtn').disabled = true;
-  $('sendBtn').textContent = t('sending');
-  try {
-    const base64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(String(r.result).split(',')[1]);
-      r.onerror = rej;
-      r.readAsDataURL(upload.blob);
-    });
-    await call('saveUpload', game.sessionId, { name: upload.name, mimeType: upload.type || 'application/octet-stream', base64 });
-    msg($('uploadMsg'), t('sent'), 'ok');
-    upload = null; $('sendBtn').hidden = true; $('recState').textContent = ''; $('recPreview').hidden = true;
-  } catch (err) {
-    msg($('uploadMsg'), errText(err));
-  } finally {
-    $('sendBtn').disabled = false; $('sendBtn').textContent = t('send');
+    btn.disabled = false;
+    btn.textContent = t('submitWritingBtn');
   }
 });
 
-/* ---------- little extras ---------- */
-function speak(word) {
-  if (!('speechSynthesis' in window) || !word) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(word);
-  u.lang = 'en-US'; u.rate = 0.85;
-  const v = speechSynthesis.getVoices().find(x => /^en(-|_)/i.test(x.lang));
-  if (v) u.voice = v;
-  speechSynthesis.speak(u);
-}
-function confetti(n) {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const box = $('confetti'), colors = ['#ffc845', '#3ccf9e', '#5b8cff', '#ff6b6b', '#9b6bff'];
-  for (let i = 0; i < n; i++) {
-    const p = document.createElement('i');
-    p.style.left = Math.random() * 100 + 'vw';
-    p.style.background = colors[i % colors.length];
-    p.style.animationDelay = Math.random() * .4 + 's';
-    box.appendChild(p);
-    setTimeout(() => p.remove(), 2000);
-  }
-}
+/* ---------- Tab switching logic ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.setAttribute('aria-selected', 'false'));
+    document.querySelectorAll('.tab-content').forEach(c => c.hidden = true);
+    btn.setAttribute('aria-selected', 'true');
+    const target = $(btn.getAttribute('aria-controls'));
+    if (target) target.hidden = false;
+  });
+});
 
-/* ---------- start ---------- */
+$('logoutBtn').addEventListener('click', () => {
+  game = null;
+  show('s-login');
+});
+
+/* ---------- Init configuration check ---------- */
 call('getPublicConfig').then(c => {
   cfg = c;
   document.title = c.title;
-  $('brandTitle').textContent = 'Word Quest';
+  $('brandTitle').textContent = c.title;
   $('loginTitle').textContent = c.title;
   $('noWrap').hidden = !c.askStudentNo;
   setLang(c.lang);
