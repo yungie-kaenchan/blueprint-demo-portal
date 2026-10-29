@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -78,6 +79,7 @@
   .btn.full { width: 100%; margin-top: 18px; }
   .btn.ghost { background: var(--card); box-shadow: 0 4px 0 var(--line); border: 2px solid var(--line); }
   .btn.mint { background: var(--mint); color: #fff; box-shadow: 0 5px 0 #23a67b; }
+  .btn.coral { background: var(--coral); color: #fff; box-shadow: 0 5px 0 #d94b4b; }
   .btn[disabled] { opacity: .55; cursor: not-allowed; }
   .msg { margin-top: 12px; padding: 10px 14px; border-radius: 14px; font-weight: 500; display: none; }
   .msg.show { display: block; }
@@ -90,11 +92,29 @@
   .tab-btn { flex: 1; font: inherit; font-weight: 600; font-size: 15px; border: 0; background: transparent; padding: 10px 8px; border-radius: 12px; cursor: pointer; color: var(--muted); text-align: center; }
   .tab-btn[aria-selected="true"] { background: var(--sky-soft); color: var(--sky); font-weight: 700; }
 
-  /* Writing Feedback Box */
+  /* Avatar maker */
+  .avatar-preview { display: grid; place-items: center; margin: 16px auto; max-width: 280px; padding: 12px; background: var(--sky-soft); border-radius: 20px; }
+  .avatar-preview svg { display: block; width: 100%; height: auto; }
+  .avatar-group { margin: 16px 0; border: 0; padding: 0; min-width: 0; }
+  .avatar-group legend { font-weight: 700; margin-bottom: 8px; }
+  .avatar-options { display: flex; flex-wrap: wrap; gap: 8px; }
+  .avatar-choice { min-height: 44px; padding: 9px 13px; border: 2px solid var(--line); border-radius: 12px; background: white; color: var(--ink); font: inherit; cursor: pointer; }
+  .avatar-choice[aria-pressed="true"] { background: var(--sky-soft); border-color: var(--sky); font-weight: 700; }
+  .avatar-choice:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+
+  /* Feedback Box */
   .feedback-box { margin-top: 18px; padding: 16px; border-radius: 16px; background: var(--mint-soft); border: 2px solid #b2e8d4; }
   .feedback-box h3 { margin: 0 0 8px; font-size: 18px; color: #186b50; }
   .feedback-box ul { margin: 0; padding-left: 20px; font-size: 16px; }
   .feedback-box li { margin-bottom: 6px; }
+
+  /* Speaking UI */
+  .prompt-box { background: var(--sky-soft); border: 2px solid #cbe0ff; padding: 14px 16px; border-radius: 16px; margin-bottom: 14px; font-size: 18px; font-weight: 600; color: #234795; }
+  .rec-bar { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
+  .rec-timer { font-size: 20px; font-weight: 700; color: var(--coral); text-align: center; }
+  .rec-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--coral); display: inline-block; animation: pulse 1s infinite; margin-right: 6px; }
+  @keyframes pulse { 50% { opacity: .2; } }
+  audio { width: 100%; margin-top: 12px; }
 
   .screen { display: none; }
   .screen.active { display: block; }
@@ -165,16 +185,46 @@
       </div>
     </div>
 
-    <!-- Tab 2: Speaking Practice Placeholder -->
+    <!-- Tab 2: Speaking Practice -->
     <div class="card tab-content" id="tab-speaking" role="tabpanel" aria-labelledby="btn-speaking" hidden>
       <h2>🎙️ <span data-t="speakingTitle">Speaking Practice</span></h2>
       <p class="muted" data-t="speakingDesc">Record a 30-60 second answer and get AI feedback on fluency and pronunciation.</p>
+
+      <div class="prompt-box">
+        💬 <span data-t="speakingPrompt">Talk about a place you like to visit. Why do you like it?</span>
+      </div>
+
+      <div class="rec-bar">
+        <div id="recTimerDisplay" class="rec-timer" hidden><span class="rec-dot"></span><span id="recTime">0</span>s / 60s</div>
+        <button class="btn full" type="button" id="recBtn">🎙️ <span data-t="recordBtn">Record Audio</span></button>
+        
+        <div id="micErrBox" hidden>
+          <div class="msg err show" style="margin: 8px 0;" data-t="micBlocked">Microphone is blocked or unavailable. You can upload an audio file instead. / ไมโครโฟนถูกบล็อกหรือไม่พร้อมใช้งาน คุณสามารถเลือกไฟล์เสียงแทนได้</div>
+          <button class="btn full ghost" type="button" id="fileAudioBtn">📁 <span data-t="chooseAudio">Choose an audio file</span></button>
+          <input type="file" id="audioFileInput" accept="audio/*" hidden>
+        </div>
+
+        <audio id="audioPreview" controls hidden></audio>
+        <button class="btn full mint" type="button" id="sendSpeakingBtn" hidden data-t="sendSpeaking">Send Recording 🚀</button>
+      </div>
+
+      <div class="msg" id="speakingMsg" role="status"></div>
+
+      <div class="feedback-box" id="speakingFeedbackBox" hidden>
+        <h3 data-t="feedbackTitle">🤖 AI Feedback</h3>
+        <ul id="speakingFeedbackList"></ul>
+      </div>
     </div>
 
-    <!-- Tab 3: Avatar Maker Placeholder -->
+    <!-- Tab 3: Avatar Maker -->
     <div class="card tab-content" id="tab-avatar" role="tabpanel" aria-labelledby="btn-avatar" hidden>
       <h2>👤 <span data-t="avatarTitle">Avatar Maker</span></h2>
       <p class="muted" data-t="avatarDesc">Build a cartoon profile avatar from ready-made parts.</p>
+      <div class="avatar-preview" id="avatarPreview" role="img" aria-label="Avatar: round face, short black hair, normal eyes, smile, red shirt"></div>
+      <div id="avatarControls"></div>
+      <button class="btn full ghost" type="button" id="avatarRandom" data-t="avatarRandom">🎲 Random</button>
+      <button class="btn full mint" type="button" id="avatarSave" data-t="avatarSave">Save avatar</button>
+      <div class="msg" id="avatarMsg" role="status" aria-live="polite"></div>
     </div>
 
     <button class="btn full ghost" type="button" id="logoutBtn" style="margin-top: 16px;" data-t="logout">Log out / ออกจากระบบ</button>
@@ -196,12 +246,19 @@ const T = {
     submittingWriting: 'กำลังส่งให้ AI ตรวจสอบ…', writingSaved: 'บันทึกงานเขียนเรียบร้อยแล้ว ✓',
     feedbackTitle: '🤖 คำแนะนำจาก AI', pendingFeedback: 'ครูจะทำการปลดล็อกคำแนะนำให้เร็วๆ นี้',
     speakingTitle: 'ฝึกทักษะการพูด', speakingDesc: 'บันทึกเสียง 30-60 วินาที เพื่อรับคำติชมด้านความคล่องแคล่วและการออกเสียง',
-    avatarTitle: 'สร้างรูปโปรไฟล์', avatarDesc: 'แต่งตัวการ์ตูนโปรไฟล์จากชิ้นส่วนสำเร็จรูป',
+    speakingPrompt: 'พูดถึงสถานที่ที่คุณชอบไป พร้อมอธิบายเหตุผลว่าทำไมถึงชอบสถานที่นั้น',
+    recordBtn: 'อัดเสียง', stopBtn: 'หยุดอัดเสียง', sendSpeaking: 'ส่งเสียงอัด 🚀', sendingSpeaking: 'กำลังส่งไฟล์เสียง…',
+    chooseAudio: 'เลือกไฟล์เสียง', speakingSaved: 'บันทึกเสียงเรียบร้อยแล้ว ✓',
+    micBlocked: 'ไม่สามารถใช้งานไมโครโฟนได้ คุณสามารถกดเลือกไฟล์เสียงแทนได้',
+    avatarTitle: 'สร้างอวตาร', avatarDesc: 'เลือกส่วนต่าง ๆ เพื่อสร้างตัวการ์ตูนของคุณ',
+    avatarRandom: '🎲 สุ่ม', avatarSave: 'บันทึกอวตาร', avatarSaved: 'บันทึกอวตารแล้ว ✓', avatarSaving: 'กำลังบันทึก…', avatarLoadError: 'ไม่สามารถโหลดอวตารที่บันทึกไว้ได้', avatarSaveError: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง',
+    avatarLabels: { face: 'รูปหน้า', hair: 'ทรงผม', hairColor: 'สีผม', eyes: 'ดวงตา', mouth: 'ปาก', shirt: 'สีเสื้อ' },
+    avatarValues: { round: 'กลม', oval: 'วงรี', square: 'เหลี่ยม', short: 'สั้น', long: 'ยาว', curly: 'หยิก', bald: 'หัวโล้น', black: 'ดำ', brown: 'น้ำตาล', blonde: 'บลอนด์', red: 'แดง', white: 'ขาว', normal: 'ปกติ', happy: 'ยิ้ม', wink: 'ขยิบตา', smile: 'ยิ้ม', grin: 'ยิ้มกว้าง', neutral: 'ปกติ', blue: 'น้ำเงิน', green: 'เขียว', yellow: 'เหลือง', purple: 'ม่วง', orange: 'ส้ม' },
     logout: 'ออกจากระบบ',
     err: {
       WRONG_CODE: 'รหัสห้องไม่ถูกต้อง ลองถามครูอีกครั้งนะ', NO_NICKNAME: 'ใส่ชื่อเล่นก่อนนะ', NO_STUDENT_NO: 'ใส่เลขที่ก่อนนะ',
       NOT_OPEN: 'เกมยังไม่เปิด รอครูก่อนนะ', CLOSED: 'บทเรียนปิดแล้ว', NETWORK: 'อินเทอร์เน็ตมีปัญหา ลองใหม่อีกครั้ง',
-      NO_TEXT: 'กรุณาเขียนข้อความก่อนส่ง', TOO_BIG: 'ข้อความยาวเกินไป',
+      NO_TEXT: 'กรุณาเขียนข้อความก่อนส่ง', TOO_BIG: 'ไฟล์ใหญ่เกินไป (สูงสุด 4 MB)', NO_FILE: 'กรุณาเลือกหรืออัดเสียงก่อนส่ง',
     },
   },
   en: {
@@ -214,17 +271,34 @@ const T = {
     submittingWriting: 'Checking with AI…', writingSaved: 'Paragraph saved successfully ✓',
     feedbackTitle: '🤖 AI Feedback', pendingFeedback: 'Your teacher will release your feedback soon.',
     speakingTitle: 'Speaking Practice', speakingDesc: 'Record a 30-60 second answer and get AI feedback on fluency and pronunciation.',
-    avatarTitle: 'Avatar Maker', avatarDesc: 'Build a cartoon profile avatar from ready-made parts.',
+    speakingPrompt: 'Talk about a place you like to visit. Why do you like it?',
+    recordBtn: 'Record Audio', stopBtn: 'Stop Recording', sendSpeaking: 'Send Recording 🚀', sendingSpeaking: 'Sending Audio…',
+    chooseAudio: 'Choose an audio file', speakingSaved: 'Audio saved successfully ✓',
+    micBlocked: 'Microphone is blocked or unavailable. You can upload an audio file instead.',
+    avatarTitle: 'Avatar Maker', avatarDesc: 'Choose ready-made parts for your cartoon avatar.',
+    avatarRandom: '🎲 Random', avatarSave: 'Save avatar', avatarSaved: 'Avatar saved ✓', avatarSaving: 'Saving…', avatarLoadError: 'Could not load your saved avatar.', avatarSaveError: 'Could not save. Please try again.',
+    avatarLabels: { face: 'Face', hair: 'Hair', hairColor: 'Hair colour', eyes: 'Eyes', mouth: 'Mouth', shirt: 'Shirt' },
+    avatarValues: {},
     logout: 'Log out',
     err: {
       WRONG_CODE: 'That class code is not right. Ask your teacher.', NO_NICKNAME: 'Please type your nickname.', NO_STUDENT_NO: 'Please type your student number.',
       NOT_OPEN: 'The class is not open yet.', CLOSED: 'The class is closed.', NETWORK: 'Connection problem. Please try again.',
-      NO_TEXT: 'Please write some text before submitting.', TOO_BIG: 'The text is too long.',
+      NO_TEXT: 'Please write some text before submitting.', TOO_BIG: 'File is too large (max 4 MB).', NO_FILE: 'Please record or choose an audio file first.',
     },
   },
 };
 
 let lang = 'th', cfg = null, game = null;
+let speakingUpload = null, mediaRecorder = null, recTimer = null, recSeconds = 0;
+const AVATAR_ALLOWED = {
+  face: ['round', 'oval', 'square'], hair: ['short', 'long', 'curly', 'bald'],
+  hairColor: ['black', 'brown', 'blonde', 'red', 'white'], eyes: ['normal', 'happy', 'wink'],
+  mouth: ['smile', 'grin', 'neutral'], shirt: ['red', 'blue', 'green', 'yellow', 'purple', 'orange']
+};
+const AVATAR_DEFAULT = { face: 'round', hair: 'short', hairColor: 'black', eyes: 'normal', mouth: 'smile', shirt: 'blue' };
+let avatarChoices = { ...AVATAR_DEFAULT };
+let avatarRevision = 0;
+
 const $ = id => document.getElementById(id);
 const t = key => T[lang][key];
 
@@ -254,6 +328,7 @@ function setLang(l) {
     const v = T[l][el.dataset.t];
     if (typeof v === 'string') el.textContent = v;
   });
+  renderAvatar();
 }
 document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
 
@@ -266,6 +341,7 @@ function msg(el, text, kind) {
   el.className = 'msg ' + (kind || 'err') + (text ? ' show' : '');
 }
 
+
 /* ---------- Login handler ---------- */
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -276,6 +352,7 @@ $('loginForm').addEventListener('submit', async e => {
   try {
     game = await call('startGame', login);
     show('s-app');
+    loadAvatar(game.sessionId);
   } catch (err) {
     msg($('loginMsg'), errText(err));
   } finally {
@@ -326,6 +403,270 @@ $('writingForm').addEventListener('submit', async e => {
     btn.textContent = t('submitWritingBtn');
   }
 });
+
+/* ---------- Speaking recorder & file handling ---------- */
+function setSpeakingFile(blob, name, type) {
+  msg($('speakingMsg'), '');
+  const maxMB = (game && game.rules && game.rules.maxMB) || 4;
+  if (blob.size > maxMB * 1024 * 1024) {
+    msg($('speakingMsg'), T[lang].err.TOO_BIG);
+    return;
+  }
+  speakingUpload = { blob, name, type };
+  $('audioPreview').src = URL.createObjectURL(blob);
+  $('audioPreview').hidden = false;
+  $('sendSpeakingBtn').hidden = false;
+}
+
+$('recBtn').addEventListener('click', async () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const chunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      clearInterval(recTimer);
+      stream.getTracks().forEach(tr => tr.stop());
+      $('recTimerDisplay').hidden = true;
+      $('recBtn').className = 'btn full';
+      $('recBtn').innerHTML = '🎙️ <span>' + t('recordBtn') + '</span>';
+
+      const type = mediaRecorder.mimeType || 'audio/webm';
+      const blob = new Blob(chunks, { type });
+      const ext = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+      setSpeakingFile(blob, 'speech.' + ext, type);
+    };
+
+    mediaRecorder.start();
+    recSeconds = 0;
+    $('recTime').textContent = recSeconds;
+    $('recTimerDisplay').hidden = false;
+    $('recBtn').className = 'btn full coral';
+    $('recBtn').innerHTML = '⏹️ <span>' + t('stopBtn') + '</span>';
+
+    recTimer = setInterval(() => {
+      recSeconds++;
+      $('recTime').textContent = recSeconds;
+      if (recSeconds >= 60 && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+    }, 1000);
+  } catch (err) {
+    $('micErrBox').hidden = false;
+  }
+});
+
+$('fileAudioBtn').addEventListener('click', () => $('audioFileInput').click());
+$('audioFileInput').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) setSpeakingFile(f, f.name, f.type);
+});
+
+$('sendSpeakingBtn').addEventListener('click', async () => {
+  if (!speakingUpload) return;
+  msg($('speakingMsg'), '');
+  $('speakingFeedbackBox').hidden = true;
+
+  const btn = $('sendSpeakingBtn');
+  btn.disabled = true;
+  btn.textContent = t('sendingSpeaking');
+
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(speakingUpload.blob);
+    });
+
+    const res = await call('submitSpeaking', game.sessionId, {
+      name: speakingUpload.name,
+      type: speakingUpload.type || 'audio/webm',
+      base64
+    });
+
+    msg($('speakingMsg'), t('speakingSaved'), 'ok');
+    const list = $('speakingFeedbackList');
+    list.innerHTML = '';
+
+    if (res.released) {
+      const points = Array.isArray(res.feedback) ? res.feedback : String(res.feedback || '').split('\n').filter(Boolean);
+      points.forEach(pt => {
+        const li = document.createElement('li');
+        li.textContent = pt.replace(/^[-*•\d+.)\s]+/, '');
+        list.appendChild(li);
+      });
+    } else {
+      const li = document.createElement('li');
+      li.textContent = t('pendingFeedback');
+      list.appendChild(li);
+    }
+    $('speakingFeedbackBox').hidden = false;
+  } catch (err) {
+    msg($('speakingMsg'), errText(err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t('sendSpeaking');
+  }
+});
+
+/* ---------- Avatar maker: local inline SVG, no external images ---------- */
+const AVATAR_COLORS = {
+  black: '#292331', brown: '#74442c', blonde: '#e8b64d',
+  red: '#c45135', white: '#f4f2ed',
+  shirt: {
+    red: '#ef6262', blue: '#5689e9', green: '#36b889',
+    yellow: '#f4c44b', purple: '#9871e3', orange: '#f39b4c'
+  }
+};
+
+function avatarDescription(a) {
+  return `Avatar: ${a.face} face, ${a.hair === 'bald' ? 'bald head' : a.hair + ' ' + a.hairColor + ' hair'}, ${a.eyes} eyes, ${a.mouth}, ${a.shirt} shirt`;
+}
+
+function avatarSVG(a) {
+  const hair = AVATAR_COLORS[a.hairColor];
+  const shirt = AVATAR_COLORS.shirt[a.shirt];
+  const faceShape = a.face === 'round'
+    ? '<ellipse cx="100" cy="106" rx="54" ry="57"/>'
+    : a.face === 'oval'
+    ? '<ellipse cx="100" cy="109" rx="49" ry="65"/>'
+    : '<rect x="49" y="51" width="102" height="113" rx="22"/>';
+
+  const hairBack = a.hair === 'long'
+    ? `<path d="M47 87 Q36 33 100 31 Q164 33 153 87 L160 177 Q141 189 128 163 L72 163 Q59 189 40 177 Z" fill="${hair}" stroke="#443544" stroke-width="2"/>`
+    : '';
+
+  const hairFront = a.hair === 'bald' ? ''
+    : a.hair === 'short'
+    ? `<path d="M47 88 Q37 40 80 38 Q118 22 150 57 L154 89 Q143 74 132 64 Q107 81 86 65 Q69 84 47 88 Z" fill="${hair}"/>`
+    : a.hair === 'long'
+    ? `<path d="M46 88 Q36 38 90 35 Q145 25 155 88 Q137 77 128 60 Q99 82 75 62 Q65 81 46 88 Z" fill="${hair}"/>`
+    : `<g fill="${hair}" stroke="#443544" stroke-width="1.5">
+        <circle cx="52" cy="79" r="18"/><circle cx="59" cy="58" r="20"/>
+        <circle cx="81" cy="45" r="21"/><circle cx="105" cy="43" r="21"/>
+        <circle cx="129" cy="48" r="21"/><circle cx="147" cy="68" r="19"/>
+        <circle cx="149" cy="87" r="14"/>
+      </g>`;
+
+  const eyes = a.eyes === 'normal'
+    ? '<ellipse cx="79" cy="107" rx="5" ry="7" fill="#302735"/><ellipse cx="121" cy="107" rx="5" ry="7" fill="#302735"/>'
+    : a.eyes === 'happy'
+    ? '<path d="M70 110 Q79 96 88 110 M112 110 Q121 96 130 110" fill="none" stroke="#302735" stroke-width="4" stroke-linecap="round"/>'
+    : '<ellipse cx="79" cy="107" rx="5" ry="7" fill="#302735"/><path d="M112 109 Q121 100 130 109" fill="none" stroke="#302735" stroke-width="4" stroke-linecap="round"/>';
+
+  const mouth = a.mouth === 'smile'
+    ? '<path d="M84 133 Q100 150 116 133" fill="none" stroke="#a24e59" stroke-width="4" stroke-linecap="round"/>'
+    : a.mouth === 'grin'
+    ? '<path d="M82 131 Q100 153 118 131 Z" fill="#fff" stroke="#a24e59" stroke-width="3" stroke-linejoin="round"/>'
+    : '<path d="M88 137 H112" stroke="#a24e59" stroke-width="4" stroke-linecap="round"/>';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 230" aria-hidden="true" focusable="false">
+    <circle cx="100" cy="105" r="94" fill="#fff9ec"/>
+    <path d="M23 230 Q25 177 78 173 L122 173 Q175 177 177 230 Z" fill="${shirt}" stroke="#443544" stroke-width="3"/>
+    <path d="M82 163 V182 Q100 201 118 182 V163" fill="#f3bd96" stroke="#443544" stroke-width="2"/>
+    ${hairBack}
+    <g fill="#f6c9a6" stroke="#443544" stroke-width="3">${faceShape}</g>
+    <ellipse cx="49" cy="113" rx="9" ry="14" fill="#f6c9a6" stroke="#443544" stroke-width="2"/>
+    <ellipse cx="151" cy="113" rx="9" ry="14" fill="#f6c9a6" stroke="#443544" stroke-width="2"/>
+    ${hairFront}
+    ${eyes}
+    <path d="M100 111 L96 123 Q100 127 105 123" fill="none" stroke="#ce967e" stroke-width="2" stroke-linecap="round"/>
+    ${mouth}
+    <path d="M78 174 Q100 195 122 174" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="3"/>
+  </svg>`;
+}
+
+function renderAvatar() {
+  const preview = $('avatarPreview');
+  if (!preview) return;
+  preview.innerHTML = avatarSVG(avatarChoices);
+  preview.setAttribute('aria-label', avatarDescription(avatarChoices));
+
+  const controls = $('avatarControls');
+  controls.innerHTML = '';
+  Object.entries(AVATAR_ALLOWED).forEach(([key, values]) => {
+    const fieldset = document.createElement('fieldset');
+    fieldset.className = 'avatar-group';
+    const legend = document.createElement('legend');
+    legend.textContent = T[lang].avatarLabels[key];
+    fieldset.appendChild(legend);
+    const options = document.createElement('div');
+    options.className = 'avatar-options';
+
+    values.forEach(value => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'avatar-choice';
+      button.textContent = T[lang].avatarValues[value] || value;
+      button.setAttribute('aria-pressed', String(avatarChoices[key] === value));
+      button.addEventListener('click', () => {
+        avatarChoices[key] = value;
+        avatarRevision++;
+        msg($('avatarMsg'), '');
+        renderAvatar();
+        const chosen = Array.from($('avatarControls').querySelectorAll('.avatar-group'))[Object.keys(AVATAR_ALLOWED).indexOf(key)];
+        const selected = Array.from(chosen.querySelectorAll('button')).find(b => b.getAttribute('aria-pressed') === 'true');
+        if (selected) selected.focus();
+      });
+      options.appendChild(button);
+    });
+    fieldset.appendChild(options);
+    controls.appendChild(fieldset);
+  });
+}
+
+$('avatarRandom').addEventListener('click', () => {
+  Object.entries(AVATAR_ALLOWED).forEach(([key, values]) => {
+    avatarChoices[key] = values[Math.floor(Math.random() * values.length)];
+  });
+  avatarRevision++;
+  msg($('avatarMsg'), '');
+  renderAvatar();
+});
+
+$('avatarSave').addEventListener('click', async () => {
+  if (!game || !game.sessionId) return;
+  const sessionId = game.sessionId;
+  const choices = { ...avatarChoices };
+  const btn = $('avatarSave');
+  btn.disabled = true;
+  btn.textContent = t('avatarSaving');
+  msg($('avatarMsg'), '');
+  try {
+    await call('saveAvatar', game.sessionId, choices);
+    if (game && game.sessionId === sessionId) msg($('avatarMsg'), t('avatarSaved'), 'ok');
+  } catch (err) {
+    if (game && game.sessionId === sessionId) msg($('avatarMsg'), t('avatarSaveError'));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t('avatarSave');
+  }
+});
+
+async function loadAvatar(sessionId) {
+  const revision = ++avatarRevision;
+  avatarChoices = { ...AVATAR_DEFAULT };
+  msg($('avatarMsg'), '');
+  renderAvatar();
+  try {
+    const saved = await call('getAvatar', game.sessionId);
+    if (!game || game.sessionId !== sessionId || avatarRevision !== revision) return;
+    if (saved && typeof saved === 'object') {
+      Object.entries(AVATAR_ALLOWED).forEach(([key, values]) => {
+        if (values.includes(saved[key])) avatarChoices[key] = saved[key];
+      });
+      renderAvatar();
+    }
+  } catch (err) {
+    if (game && game.sessionId === sessionId) msg($('avatarMsg'), t('avatarLoadError'));
+  }
+}
 
 /* ---------- Tab switching logic ---------- */
 document.querySelectorAll('.tab-btn').forEach(btn => {
