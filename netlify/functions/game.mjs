@@ -14,7 +14,7 @@ import { getStore } from '@netlify/blobs';
 import { loadServiceAccount, sheetsClient } from '../../lib/google.mjs';
 import { createHouse } from '../../lib/house.mjs';
 
-const ALLOWED = new Set(['getPublicConfig', 'startGame', 'submitLevel', 'finishGame', 'saveUpload']);
+const ALLOWED = new Set(['getPublicConfig', 'startGame', 'submitLevel', 'finishGame', 'saveUpload', 'submitWriting']);
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const env = k => (Netlify.env.get(k) || '').trim();
 
@@ -35,6 +35,7 @@ function getHouse(req) {
       meta: getStore({ name: 'wq-meta', consistency: 'strong' }),
     },
     secret, siteUrl,
+    env,
   });
   houseKey = key;
   return house;
