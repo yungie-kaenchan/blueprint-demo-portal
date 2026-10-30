@@ -1,12 +1,12 @@
 {
-  "name": "word-quest-netlify-house",
+  "name": "writing-coach-demo-portal",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Word Quest vocabulary game, Netlify house: page + functions on Netlify, Google Sheet as the filing cabinet, Netlify Blobs as the storeroom.",
+  "description": "Writing Coach demo portal (Blueprint Before You Build): student page + functions on Netlify, Google Sheet as the filing cabinet, Netlify Blobs as the storeroom.",
   "scripts": {
     "build": "node tools/build-public.mjs",
-    "test": "node test/house.test.mjs && node test/google.test.mjs"
+    "test": "node test/portal.test.mjs && node test/google.test.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^11.1.4"

@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Word Quest · Back office (live)</title>
+<title>Writing Coach · Back office (live)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -22,7 +22,10 @@
   .live.off i { background: var(--coral); animation: none; }
   @keyframes blink { 50% { opacity: .25; } }
   .card { background: var(--card); border: 2px solid var(--line); border-radius: 18px; padding: 16px; box-shadow: 0 6px 0 rgba(43,34,54,.06); }
-  .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .pin-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: end; max-width: 560px; }
+  .pin-form label { grid-column: 1 / -1; }
+  .pin-form button { margin-top: 0; width: auto; min-height: 48px; }
   .stat b { display: block; font-size: 30px; font-variant-numeric: tabular-nums; }
   .stat span { font-size: 13px; color: var(--muted); }
   .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -83,36 +86,27 @@
 
 <div class="wrap" id="board" hidden>
   <header>
-    <h1>🧑‍🏫 Word Quest · Back office</h1>
+    <h1>🧑‍🏫 <span id="boardTitle">Writing Coach</span> · Back office</h1>
     <span class="live" id="live"><i></i><span id="liveText">LIVE</span></span>
   </header>
 
   <div class="stats">
-    <div class="card stat"><b id="cPlaying">0</b><span>กำลังเล่น · playing now</span></div>
-    <div class="card stat"><b id="cFinished">0</b><span>เล่นจบ · finished plays</span></div>
-    <div class="card stat"><b id="cPlayers">0</b><span>นักเรียน · players</span></div>
-    <div class="card stat"><b id="cAvg">0</b><span>คะแนนเฉลี่ย · average</span></div>
-    <div class="card stat"><b id="cRate">0%</b><span>ตอบถูก · correct</span></div>
+    <div class="card stat"><b id="cStudents">0</b><span>นักเรียน · students</span></div>
+    <div class="card stat"><b id="cWriting">0</b><span>งานเขียน · writing</span></div>
+    <div class="card stat"><b id="cSpeaking">0</b><span>งานพูด · speaking</span></div>
+    <div class="card stat"><b id="cWaiting">0</b><span>รอครูปล่อย · waiting for you</span></div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <h2>● กำลังเล่น · Playing now</h2>
-      <table><thead><tr><th>Nickname</th><th>No.</th><th>Attempt</th><th>Started</th></tr></thead><tbody id="tPlaying"></tbody></table>
-    </div>
-    <div class="card">
-      <h2>🏅 Top 10</h2>
-      <table><thead><tr><th>Nickname</th><th>No.</th><th class="n">Best</th></tr></thead><tbody id="tTop"></tbody></table>
-    </div>
-    <div class="card">
-      <h2>🕒 เพิ่งเล่นจบ · Just finished</h2>
-      <table><thead><tr><th>Nickname</th><th>No.</th><th class="n">Points</th><th class="n">Correct</th></tr></thead><tbody id="tRecent"></tbody></table>
-    </div>
-    <div class="card">
-      <h2>🧩 คำที่ผิดบ่อย · Hardest words</h2>
-      <table><thead><tr><th>Word</th><th class="n">Tries</th><th style="width:40%">Correct rate</th></tr></thead><tbody id="tHard"></tbody></table>
-    </div>
-  </div>
+  <section class="card pin-card" aria-labelledby="pinHeading">
+    <h2 id="pinHeading">🔑 รีเซ็ต PIN นักเรียน · Reset a student’s PIN</h2>
+    <p class="muted">นักเรียนลืม PIN: พิมพ์ชื่อเล่นแล้วกดรีเซ็ต ครั้งต่อไปที่เข้า นักเรียนตั้ง PIN ใหม่ได้ · A student forgot their PIN: type the nickname and reset it; they set a new PIN at their next log-in.</p>
+    <form id="pinForm" class="pin-form">
+      <label for="pinNick" class="muted">ชื่อเล่น · Nickname</label>
+      <input type="text" id="pinNick" maxlength="30" autocomplete="off" required>
+      <button type="submit" id="pinBtn">รีเซ็ต · Reset PIN</button>
+    </form>
+    <div class="section-msg" id="pinMsg" role="status" aria-live="polite"></div>
+  </section>
 
   <section class="card teacher-section" aria-labelledby="writingHeading">
     <h2 id="writingHeading">✏️ Writing · งานเขียน</h2>
@@ -123,7 +117,7 @@
 
   <section class="card teacher-section" aria-labelledby="speakingHeading">
     <h2 id="speakingHeading">🎙️ Speaking · งานพูด</h2>
-    <p class="muted">Latest 50 submissions · รายการล่าสุด 50 รายการ</p>
+    <p class="muted">Latest 50 submissions · รายการล่าสุด 50 รายการ · ลิงก์เสียงใช้ได้ <span id="linkMin">60</span> นาที หน้านี้สร้างลิงก์ใหม่ให้ทุกครั้งที่อัปเดต · Audio links work for <span id="linkMin2">60</span> minutes; this page makes fresh ones as it refreshes.</p>
     <div id="speakingRows"></div>
     <div class="section-msg" id="speakingActionMsg" role="status" aria-live="polite"></div>
   </section>
@@ -136,7 +130,7 @@
   <p class="muted" style="margin-top:14px">
     ข้อมูลทั้งหมดอยู่ใน Google Sheet ของคุณ อัปเดตทุก 8 วินาที
     · All data lives in your Google Sheet. This page refreshes every 8 seconds.
-    Teachers can hide or release AI feedback.
+    Teachers can hide or release AI feedback; students see released feedback under "Feedback for you".
   </p>
 </div>
 
@@ -168,48 +162,12 @@
   var polling = false;
   var updating = false;
 
-  function rows(id, list, fn, empty) {
-    $(id).innerHTML = list.length
-      ? list.map(fn).join('')
-      : '<tr><td colspan="4" class="muted">' + empty + '</td></tr>';
-  }
-
   function render(v) {
-    $('cPlaying').textContent = v.counts.playing;
-    $('cFinished').textContent = v.counts.finished;
-    $('cPlayers').textContent = v.counts.players;
-    $('cAvg').textContent = v.counts.avgPoints;
-    $('cRate').textContent = Math.round(v.counts.correctRate * 100) + '%';
-
-    rows('tPlaying', v.playing, function (p) {
-      return '<tr class="playing"><td>' + esc(p.nickname) +
-        '</td><td>' + esc(p.studentNo) +
-        '</td><td>' + esc(p.attempt) +
-        '</td><td>' + time(p.started) + '</td></tr>';
-    }, 'ยังไม่มีใครเล่น · nobody yet');
-
-    rows('tTop', v.top, function (p) {
-      return '<tr><td>' + esc(p.nickname) +
-        '</td><td>' + esc(p.studentNo) +
-        '</td><td class="n">' + esc(p.points) + '</td></tr>';
-    }, '—');
-
-    rows('tRecent', v.recent, function (p) {
-      return '<tr><td>' + esc(p.nickname) +
-        '</td><td>' + esc(p.studentNo) +
-        '</td><td class="n">' + esc(p.points) +
-        '</td><td class="n">' + esc(p.correct) +
-        '/' + esc(p.total) + '</td></tr>';
-    }, '—');
-
-    rows('tHard', v.hardest, function (w) {
-      var rate = Math.max(0, Math.min(100, Math.round(w.rate * 100)));
-      return '<tr><td>' + esc(w.word) +
-        '</td><td class="n">' + esc(w.tries) +
-        '</td><td><div class="bar" title="' + rate +
-        '%"><i style="width:' + (100 - rate) +
-        '%"></i></div> ' + rate + '%</td></tr>';
-    }, '—');
+    $('cStudents').textContent = v.counts.students;
+    $('cWriting').textContent = v.counts.writing;
+    $('cSpeaking').textContent = v.counts.speaking;
+    $('cWaiting').textContent = v.counts.waiting;
+    $('linkMin').textContent = $('linkMin2').textContent = v.linkMinutes || 60;
 
     renderFeedback('writingRows', v.writing || [], 'Writing');
     renderFeedback('speakingRows', v.speaking || [], 'Speaking');
@@ -217,6 +175,9 @@
   }
 
   function renderFeedback(id, list, tab) {
+    // don't cut off a recording the teacher is listening to; the next refresh catches up
+    var playing = Array.prototype.some.call($(id).querySelectorAll('audio'), function (a) { return !a.paused && !a.ended; });
+    if (playing) return;
     if (!list.length) {
       $(id).innerHTML = '<p class="muted">No submissions yet · ยังไม่มีงานส่ง</p>';
       return;
@@ -282,7 +243,7 @@
   }
 
   function authFailed(error) {
-    if (error !== 'PASSCODE' && error !== 'NO_ADMIN_PASSCODE') return false;
+    if (error !== 'PASSCODE' && error !== 'NO_ADMIN_PASSCODE' && error !== 'LOCKED') return false;
     clearInterval(timer);
     try { sessionStorage.removeItem(KEY); } catch (e) {}
     pass = '';
@@ -290,9 +251,41 @@
     $('gate').hidden = false;
     $('gateMsg').textContent = error === 'PASSCODE'
       ? 'รหัสไม่ถูกต้อง · Wrong passcode'
+      : error === 'LOCKED'
+      ? 'ใส่รหัสผิดหลายครั้ง รอ 15 นาที · Too many wrong passcodes: wait 15 minutes'
       : 'ยังไม่ได้ตั้ง ADMIN_PASSCODE ใน Netlify · Set ADMIN_PASSCODE in Netlify first';
     return true;
   }
+
+  $('pinForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var nick = $('pinNick').value.trim();
+    if (!nick || updating) return;
+    updating = true;
+    $('pinBtn').disabled = true;
+    $('pinMsg').textContent = 'Saving… · กำลังบันทึก…';
+    try {
+      var response = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-admin-passcode': pass },
+        body: JSON.stringify({ action: 'resetPin', nickname: nick })
+      });
+      var result = await response.json();
+      if (!result.ok) {
+        if (authFailed(result.error)) return;
+        throw new Error(result.error || 'ERROR');
+      }
+      $('pinMsg').textContent = result.value.existed
+        ? 'รีเซ็ต PIN ของ "' + nick + '" แล้ว ✓ · PIN reset for "' + nick + '"'
+        : 'ชื่อเล่น "' + nick + '" ยังไม่มี PIN · "' + nick + '" has no PIN yet';
+      $('pinNick').value = '';
+    } catch (err) {
+      $('pinMsg').textContent = 'Could not reset. Please try again. · รีเซ็ตไม่สำเร็จ';
+    } finally {
+      updating = false;
+      $('pinBtn').disabled = false;
+    }
+  });
 
   async function poll() {
     if (polling || updating || !pass) return;

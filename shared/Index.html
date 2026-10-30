@@ -60,11 +60,12 @@
   p { margin: 0 0 12px; }
   .muted { color: var(--muted); }
   label { display: block; font-weight: 600; margin: 14px 0 6px; }
-  input[type=text], textarea {
+  .hint { font-size: 14px; color: var(--muted); margin: 6px 0 0; }
+  input[type=text], input[type=password], textarea {
     width: 100%; font: inherit; font-size: 17px; padding: 12px 14px; border-radius: 14px;
     border: 2px solid var(--line); background: #fffdf9; color: var(--ink);
   }
-  input[type=text]:focus, textarea:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 4px var(--sky-soft); }
+  input[type=text]:focus, input[type=password]:focus, textarea:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 4px var(--sky-soft); }
   textarea { resize: vertical; min-height: 130px; }
   .char-count { font-size: 13px; color: var(--muted); text-align: right; margin-top: 4px; }
   .btn {
@@ -107,6 +108,14 @@
   .feedback-box h3 { margin: 0 0 8px; font-size: 18px; color: #186b50; }
   .feedback-box ul { margin: 0; padding-left: 20px; font-size: 16px; }
   .feedback-box li { margin-bottom: 6px; }
+  .mine { margin-top: 16px; }
+  .mine-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .mine-head h2 { margin: 0; font-size: 19px; }
+  .mine-head .btn { font-size: 15px; min-height: 44px; padding: 8px 14px; }
+  .mine-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+  .mine-list li { border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; background: #fffdf9; }
+  .mine-list small { display: block; color: var(--muted); font-size: 13px; }
+  .mine-list p { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
 
   /* Speaking UI */
   .prompt-box { background: var(--sky-soft); border: 2px solid #cbe0ff; padding: 14px 16px; border-radius: 16px; margin-bottom: 14px; font-size: 18px; font-weight: 600; color: #234795; }
@@ -146,6 +155,9 @@
         <input type="text" id="classCode" autocomplete="off" autocapitalize="characters" maxlength="20" required>
         <label for="nickname" data-t="nickname"></label>
         <input type="text" id="nickname" autocomplete="nickname" maxlength="30" required>
+        <label for="pin" data-t="pin"></label>
+        <input type="password" id="pin" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="4" required aria-describedby="pinHelp">
+        <p class="hint" id="pinHelp" data-t="pinHelp"></p>
         <div id="noWrap">
           <label for="studentNo" data-t="studentNo"></label>
           <input type="text" id="studentNo" inputmode="numeric" autocomplete="off" maxlength="20">
@@ -174,7 +186,8 @@
         <label for="writingText" data-t="writingLabel">Write your paragraph here:</label>
         <textarea id="writingText" maxlength="1200" placeholder="Type or paste your English paragraph..." required></textarea>
         <div class="char-count"><span id="charCount">0</span> / 1200</div>
-        <button class="btn full mint" type="submit" id="submitWritingBtn" data-t="submitWriting">Submit Paragraph 🚀</button>
+        <p class="hint" id="draftNote" data-t="draftNote"></p>
+        <button class="btn full mint" type="submit" id="submitWritingBtn" data-t="submitWritingBtn">Submit Paragraph 🚀</button>
       </form>
 
       <div class="msg" id="writingMsg" role="status"></div>
@@ -227,6 +240,15 @@
       <div class="msg" id="avatarMsg" role="status" aria-live="polite"></div>
     </div>
 
+    <section class="card mine" aria-labelledby="mineTitle">
+      <div class="mine-head">
+        <h2 id="mineTitle" data-t="mineTitle">📬 Feedback for you</h2>
+        <button class="btn ghost" type="button" id="mineBtn" data-t="mineCheck">Check again</button>
+      </div>
+      <p class="hint" data-t="mineDesc"></p>
+      <ul class="mine-list" id="mineList" aria-live="polite"></ul>
+    </section>
+
     <button class="btn full ghost" type="button" id="logoutBtn" style="margin-top: 16px;" data-t="logout">Log out / ออกจากระบบ</button>
   </section>
 
@@ -240,6 +262,12 @@ const T = {
     welcome: 'พิมพ์รหัสห้องที่ครูให้ และชื่อเล่นเพื่อเข้าสู่บทเรียน',
     classCode: 'รหัสห้อง', nickname: 'ชื่อเล่น', studentNo: 'เลขที่ / รหัสนักเรียน', start: 'เข้าสู่บทเรียน 🚀',
     privacy: 'ใช้ชื่อเล่นเท่านั้น ไม่ต้องใส่ชื่อจริงหรือเบอร์โทร',
+    pin: 'PIN 4 หลัก', pinHelp: 'ครั้งแรก: ตั้ง PIN 4 หลักของคุณเอง ครั้งต่อไปใช้ PIN เดิม ลืม PIN ให้ครูรีเซ็ตให้',
+    pinSet: 'ตั้ง PIN แล้ว จำไว้ใช้ครั้งหน้านะ ✓',
+    draftNote: 'งานที่พิมพ์จะถูกเก็บไว้ในเครื่องนี้ ถ้ารีเฟรชหน้าก็ไม่หาย',
+    limited: 'บันทึกงานแล้ว ✓ วันนี้ใช้ AI ครบโควตาแล้ว ครูจะให้คำแนะนำเอง',
+    mineTitle: '📬 คำแนะนำสำหรับคุณ', mineCheck: 'ดูอีกครั้ง', mineDesc: 'คำแนะนำที่ครูปล่อยแล้วจะขึ้นที่นี่',
+    mineEmpty: 'ยังไม่มีคำแนะนำที่ปล่อยแล้ว', kindWriting: 'งานเขียน', kindSpeaking: 'งานพูด',
     tabWriting: '✏️ เขียนพารากราฟ', tabSpeaking: '🎙️ ฝึกพูด', tabAvatar: '👤 สร้างอวตาร',
     writingTitle: 'ตรวจงานเขียน', writingDesc: 'เขียนพารากราฟสั้นๆ และรับคำแนะนำจาก AI ตามเกณฑ์ 3 ข้อ',
     writingLabel: 'เขียนพารากราฟภาษาอังกฤษของคุณที่นี่:', submitWritingBtn: 'ส่งตรวจงานเขียน 🚀',
@@ -259,12 +287,21 @@ const T = {
       WRONG_CODE: 'รหัสห้องไม่ถูกต้อง ลองถามครูอีกครั้งนะ', NO_NICKNAME: 'ใส่ชื่อเล่นก่อนนะ', NO_STUDENT_NO: 'ใส่เลขที่ก่อนนะ',
       NOT_OPEN: 'เกมยังไม่เปิด รอครูก่อนนะ', CLOSED: 'บทเรียนปิดแล้ว', NETWORK: 'อินเทอร์เน็ตมีปัญหา ลองใหม่อีกครั้ง',
       NO_TEXT: 'กรุณาเขียนข้อความก่อนส่ง', TOO_BIG: 'ไฟล์ใหญ่เกินไป (สูงสุด 4 MB)', NO_FILE: 'กรุณาเลือกหรืออัดเสียงก่อนส่ง',
+      NO_PIN: 'ใส่ PIN เป็นตัวเลข 4 หลัก', WRONG_PIN: 'PIN ไม่ตรงกับชื่อเล่นนี้ ลองอีกครั้ง หรือเลือกชื่อเล่นอื่น (ลืม PIN ให้ครูรีเซ็ต)',
+      PIN_LOCKED: 'ใส่ PIN ผิดหลายครั้ง รอ 15 นาที หรือให้ครูรีเซ็ต PIN', SESSION_EXPIRED: 'หมดเวลาเข้าระบบ กรุณาเข้าใหม่',
+      BAD_TYPE: 'รองรับเฉพาะไฟล์เสียง', TOO_MANY: 'ส่งเสียงครบ 5 ครั้งแล้วในรอบนี้', BUSY: 'ระบบยุ่งอยู่ ลองใหม่ในอีกสักครู่',
     },
   },
   en: {
     welcome: 'Type your class code and nickname to get started.',
     classCode: 'Class code', nickname: 'Nickname', studentNo: 'Student number', start: 'Start 🚀',
     privacy: 'Use your nickname only. No full names or phone numbers.',
+    pin: '4-digit PIN', pinHelp: 'First time: choose your own 4-digit PIN. Next time, use the same PIN. Forgot it? Your teacher can reset it.',
+    pinSet: 'Your PIN is set. Remember it for next time ✓',
+    draftNote: 'Your draft is kept on this device, so a refresh will not lose it.',
+    limited: 'Saved ✓ Today’s AI limit is reached, so your teacher will give feedback.',
+    mineTitle: '📬 Feedback for you', mineCheck: 'Check again', mineDesc: 'Feedback your teacher has released appears here.',
+    mineEmpty: 'No released feedback yet.', kindWriting: 'Writing', kindSpeaking: 'Speaking',
     tabWriting: '✏️ Writing', tabSpeaking: '🎙️ Speaking', tabAvatar: '👤 Avatar',
     writingTitle: 'Writing Grader', writingDesc: 'Write a short paragraph and get AI feedback on three rubric points.',
     writingLabel: 'Write your paragraph here:', submitWritingBtn: 'Submit Paragraph 🚀',
@@ -284,6 +321,9 @@ const T = {
       WRONG_CODE: 'That class code is not right. Ask your teacher.', NO_NICKNAME: 'Please type your nickname.', NO_STUDENT_NO: 'Please type your student number.',
       NOT_OPEN: 'The class is not open yet.', CLOSED: 'The class is closed.', NETWORK: 'Connection problem. Please try again.',
       NO_TEXT: 'Please write some text before submitting.', TOO_BIG: 'File is too large (max 4 MB).', NO_FILE: 'Please record or choose an audio file first.',
+      NO_PIN: 'Type a 4-digit PIN.', WRONG_PIN: 'That PIN does not match this nickname. Try again, or pick another nickname (forgot it? ask your teacher to reset it).',
+      PIN_LOCKED: 'Too many wrong PINs. Wait 15 minutes or ask your teacher to reset your PIN.', SESSION_EXPIRED: 'Your session has ended. Please log in again.',
+      BAD_TYPE: 'Please choose an audio file.', TOO_MANY: 'You have sent 5 recordings this session.', BUSY: 'The server is busy. Try again in a moment.',
     },
   },
 };
@@ -330,7 +370,11 @@ function setLang(l) {
   });
   renderAvatar();
 }
-document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => {
+  setLang(b.dataset.lang);
+  try { localStorage.setItem('wc:lang', b.dataset.lang); } catch (e) {}
+}));
+const savedLang = () => { try { const l = localStorage.getItem('wc:lang'); return l === 'th' || l === 'en' ? l : ''; } catch (e) { return ''; } };
 
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
@@ -342,17 +386,49 @@ function msg(el, text, kind) {
 }
 
 
+/* ---------- Session kept for this tab, so a refresh does not log you out ---------- */
+const SESSION_KEY = 'wc:session';
+const store = (area, k, v) => { try { if (v === undefined) return window[area].getItem(k); if (v === null) window[area].removeItem(k); else window[area].setItem(k, v); } catch (e) { return null; } };
+
+function enterApp(g) {
+  game = g;
+  store('sessionStorage', SESSION_KEY, g.sessionId);
+  show('s-app');
+  restoreDraft();
+  loadAvatar(g.sessionId);
+  loadMine();
+}
+
+function endSession(text) {
+  game = null;
+  store('sessionStorage', SESSION_KEY, null);
+  show('s-login');
+  if (text) msg($('loginMsg'), text);
+}
+
+// every call after log-in: an ended session sends the student back to the log-in screen
+async function callAs(fn, ...args) {
+  try {
+    return await call(fn, ...args);
+  } catch (err) {
+    if (String(err && err.message) === 'SESSION_EXPIRED') endSession(T[lang].err.SESSION_EXPIRED);
+    throw err;
+  }
+}
+
 /* ---------- Login handler ---------- */
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   msg($('loginMsg'), '');
-  const login = { classCode: $('classCode').value, nickname: $('nickname').value, studentNo: $('studentNo').value };
+  const login = { classCode: $('classCode').value, nickname: $('nickname').value, pin: $('pin').value.trim(), studentNo: $('studentNo').value };
   if (!login.nickname.trim()) return msg($('loginMsg'), T[lang].err.NO_NICKNAME);
+  if (!/^\d{4}$/.test(login.pin)) return msg($('loginMsg'), T[lang].err.NO_PIN);
   $('startBtn').disabled = true;
   try {
-    game = await call('startGame', login);
-    show('s-app');
-    loadAvatar(game.sessionId);
+    const g = await call('startGame', login);
+    $('pin').value = '';
+    enterApp(g);
+    if (g.player && g.player.newPin) msg($('writingMsg'), t('pinSet'), 'ok');
   } catch (err) {
     msg($('loginMsg'), errText(err));
   } finally {
@@ -360,9 +436,20 @@ $('loginForm').addEventListener('submit', async e => {
   }
 });
 
+/* ---------- Writing draft: kept on this device until it is sent or you log out ---------- */
+const draftKey = () => game && game.player ? 'wc:draft:' + String(game.player.nickname).toLowerCase() : '';
+let draftTimer = null;
+function restoreDraft() {
+  const saved = draftKey() && store('localStorage', draftKey());
+  if (saved && !$('writingText').value) $('writingText').value = saved;
+  $('charCount').textContent = $('writingText').value.length;
+}
+
 /* ---------- Writing text area counter & submit ---------- */
 $('writingText').addEventListener('input', e => {
   $('charCount').textContent = e.target.value.length;
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => { if (draftKey()) store('localStorage', draftKey(), e.target.value || null); }, 400);
 });
 
 $('writingForm').addEventListener('submit', async e => {
@@ -377,9 +464,11 @@ $('writingForm').addEventListener('submit', async e => {
   btn.textContent = t('submittingWriting');
 
   try {
-    const res = await call('submitWriting', game.sessionId, text);
-    msg($('writingMsg'), t('writingSaved'), 'ok');
-    
+    const res = await callAs('submitWriting', game.sessionId, text);
+    msg($('writingMsg'), res.limited ? t('limited') : t('writingSaved'), 'ok');
+    clearTimeout(draftTimer);
+    if (draftKey()) store('localStorage', draftKey(), null);
+
     const list = $('writingFeedbackList');
     list.innerHTML = '';
     if (res.released) {
@@ -484,13 +573,13 @@ $('sendSpeakingBtn').addEventListener('click', async () => {
       r.readAsDataURL(speakingUpload.blob);
     });
 
-    const res = await call('submitSpeaking', game.sessionId, {
+    const res = await callAs('submitSpeaking', game.sessionId, {
       name: speakingUpload.name,
       type: speakingUpload.type || 'audio/webm',
       base64
     });
 
-    msg($('speakingMsg'), t('speakingSaved'), 'ok');
+    msg($('speakingMsg'), res.limited ? t('limited') : t('speakingSaved'), 'ok');
     const list = $('speakingFeedbackList');
     list.innerHTML = '';
 
@@ -639,7 +728,7 @@ $('avatarSave').addEventListener('click', async () => {
   btn.textContent = t('avatarSaving');
   msg($('avatarMsg'), '');
   try {
-    await call('saveAvatar', game.sessionId, choices);
+    await callAs('saveAvatar', game.sessionId, choices);
     if (game && game.sessionId === sessionId) msg($('avatarMsg'), t('avatarSaved'), 'ok');
   } catch (err) {
     if (game && game.sessionId === sessionId) msg($('avatarMsg'), t('avatarSaveError'));
@@ -655,7 +744,7 @@ async function loadAvatar(sessionId) {
   msg($('avatarMsg'), '');
   renderAvatar();
   try {
-    const saved = await call('getAvatar', game.sessionId);
+    const saved = await callAs('getAvatar', game.sessionId);
     if (!game || game.sessionId !== sessionId || avatarRevision !== revision) return;
     if (saved && typeof saved === 'object') {
       Object.entries(AVATAR_ALLOWED).forEach(([key, values]) => {
@@ -668,36 +757,86 @@ async function loadAvatar(sessionId) {
   }
 }
 
-/* ---------- Tab switching logic ---------- */
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.setAttribute('aria-selected', 'false'));
-    document.querySelectorAll('.tab-content').forEach(c => c.hidden = true);
-    btn.setAttribute('aria-selected', 'true');
-    const target = $(btn.getAttribute('aria-controls'));
-    if (target) target.hidden = false;
+/* ---------- Feedback the teacher has released ---------- */
+async function loadMine() {
+  if (!game) return;
+  const list = $('mineList');
+  try {
+    const items = await callAs('getMyFeedback', game.sessionId);
+    list.innerHTML = '';
+    if (!items.length) {
+      const li = document.createElement('li');
+      li.textContent = t('mineEmpty');
+      list.appendChild(li);
+      return;
+    }
+    items.forEach(it => {
+      const li = document.createElement('li');
+      const head = document.createElement('small');
+      const d = new Date(it.time);
+      head.textContent = t(it.kind === 'Speaking' ? 'kindSpeaking' : 'kindWriting') +
+        (isNaN(d) ? '' : ' · ' + d.toLocaleString(lang === 'th' ? 'th-TH' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' })) +
+        (it.about ? ' · “' + it.about + (it.about.length >= 80 ? '…' : '') + '”' : '');
+      const body = document.createElement('p');
+      body.textContent = it.feedback;
+      li.append(head, body);
+      list.appendChild(li);
+    });
+  } catch (err) {
+    list.innerHTML = '';
+  }
+}
+$('mineBtn').addEventListener('click', loadMine);
+
+/* ---------- Tabs: click, or arrow keys / Home / End (one Tab stop for the whole tab bar) ---------- */
+const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+function selectTab(btn, focus) {
+  tabs.forEach(b => {
+    const on = b === btn;
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1;
+    const panel = $(b.getAttribute('aria-controls'));
+    if (panel) panel.hidden = !on;
+  });
+  if (focus) btn.focus();
+}
+tabs.forEach((btn, i) => {
+  btn.addEventListener('click', () => selectTab(btn));
+  btn.addEventListener('keydown', e => {
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    selectTab(tabs[(next + tabs.length) % tabs.length], true);
   });
 });
+selectTab(tabs[0]);
 
 $('logoutBtn').addEventListener('click', () => {
-  game = null;
-  show('s-login');
+  // a shared computer: the next student must not see this draft
+  if (draftKey()) store('localStorage', draftKey(), null);
+  $('writingText').value = '';
+  $('charCount').textContent = '0';
+  $('mineList').innerHTML = '';
+  endSession();
 });
 
-/* ---------- Init configuration check ---------- */
+/* ---------- Init configuration check, then pick up a session kept in this tab ---------- */
 call('getPublicConfig').then(c => {
   cfg = c;
   document.title = c.title;
   $('brandTitle').textContent = c.title;
   $('loginTitle').textContent = c.title;
   $('noWrap').hidden = !c.askStudentNo;
-  setLang(c.lang);
+  setLang(savedLang() || c.lang);
   if (c.status.state !== 'open') {
     msg($('loginMsg'), T[lang].err[c.status.state === 'notyet' ? 'NOT_OPEN' : 'CLOSED']);
     $('startBtn').disabled = true;
+    return;
   }
-}).catch(() => setLang('th'));
-setLang('th');
+  const kept = store('sessionStorage', SESSION_KEY);
+  if (kept) call('resumeSession', kept).then(enterApp).catch(() => store('sessionStorage', SESSION_KEY, null));
+}).catch(() => setLang(savedLang() || 'th'));
+setLang(savedLang() || 'th');
 </script>
 </body>
 </html>
